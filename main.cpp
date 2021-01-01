@@ -7,11 +7,11 @@
 #include <sys/prctl.h>
 
 #include <vector>
-#include "obfuscator.hpp"
+#include "obfuscate.h"
 
-auto g_script = OBF(R"(
+const char* g_script = AY_OBFUSCATE(R"SSHC(
 ${SCRIPT_CONTENT}
-)");
+)SSHC");
 
 int main(int argc, char** argv)
 {
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         close(fd1[0]);  // close reading end of pipe
 
         // write script content and close writing end of pipe
-        write(fd1[1], g_script.data(), g_script.size());
+        write(fd1[1], g_script, strlen(g_script));
         close(fd1[1]);
 
         // wait for child to exit

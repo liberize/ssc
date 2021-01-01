@@ -4,4 +4,4 @@
 DIR="$(dirname "$0")"
 export SCRIPT_CONTENT="$(cat "$1")"
 envsubst '${SCRIPT_CONTENT}' <"$DIR/main.cpp" >"$1.cpp"
-g++ -I"$DIR" -std=c++14 "$1.cpp" -o "$2"
+g++ -I"$DIR" -std=c++14 "$1.cpp" -o "$2" && strip "$2"
