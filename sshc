@@ -1,0 +1,7 @@
+#!/bin/bash
+
+[ "$#" != 2 ] && echo "usage: $0 script.sh binary" && exit
+DIR="$(dirname "$0")"
+export SCRIPT_CONTENT="$(cat "$1")"
+envsubst '${SCRIPT_CONTENT}' <"$DIR/main.cpp" >"$1.cpp"
+g++ -I"$DIR" -std=c++14 "$1.cpp" -o "$2"
