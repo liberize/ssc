@@ -19,14 +19,12 @@ sshc script.sh binary
 * simple code protection with compile time obfuscation rather than encryption
 * no anti-debugging features
 * pipes shell code to bash to avoid command line exposure
-* support parameters
-* ~~doesn't support script output for now~~
 
 # Which Shell will be Used
 
-| if                                      | scripit.sh has no shebang         | script.sh begins with a shebang<br />`#!/path/to/shell args` |
-|-----------------------------------------|-----------------------------------|--------------------------------------------------------------|
-| call `./binary`        is equivalent to | `cat script.sh \| sh`             | `cat script.sh \| /path/to/shell args`                       |
-| call `./binary params` is equivalent to | `cat script.sh \| bash -s params` | `cat script.sh \| /path/to/shell args -s params`             |
+| if                                 | scripit.sh has no shebang         | script.sh begins with a shebang<br />`#!/path/to/shell args` |
+|------------------------------------|-----------------------------------|--------------------------------------------------------------|
+| `./binary`        is equivalent to | `cat script.sh \| sh`             | `cat script.sh \| /path/to/shell args`                       |
+| `./binary params` is equivalent to | `cat script.sh \| bash -s params` | `cat script.sh \| /path/to/shell args -s params`             |
 
 PS: `-s` flag works for dash, bash, ksh, zsh, csh, tcsh...
