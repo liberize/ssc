@@ -103,14 +103,10 @@ int main(int argc, char* argv[])
             args = std::vector<std::string>{std::istream_iterator<std::string>{iss},
                 std::istream_iterator<std::string>{}}; 
         }
-        if (argc == 1) {
-            if (args.empty()) {
-                args.emplace_back("sh"); // default to sh to support more shells
-            }
-        } else {
-            if (args.empty()) {
-                args.emplace_back("bash"); // default to bash because we need '-s' flag
-            }
+        if (args.empty()) {
+            args.emplace_back("sh"); // default to sh
+        }
+        if (argc > 1) {
             args.emplace_back("-s");
             for (auto i = 1; i < argc; i++) {
                 args.emplace_back(argv[i]);
