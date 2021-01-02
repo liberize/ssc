@@ -14,11 +14,11 @@ sshc script.sh binary
 
 # Features and Limitations
 
-* very simple, easy to understand
-* ~~support bash only for now~~ support shebang, see below
-* simple code protection with compile time obfuscation rather than encryption
+* very simple
+* ~~support bash only for now~~ **support shebang**, see below
+* simple code protection with **compile time obfuscation** rather than encryption
 * no anti-debugging features
-* pipes shell code to bash to avoid command line exposure
+* pipes shell code to bash to **avoid command line exposure**
 
 # Which Shell will be Used
 
