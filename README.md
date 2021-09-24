@@ -2,7 +2,7 @@
 
 This is a simple tool to turn shell/python/perl script to binary, inspired by shc.
 
-sshc itself is not a compiler such as cc, it rather encodes a shell/python/perl script and generates c++ source code. It then uses the system compiler to compile a binary which behaves exactly like the original script. Upon execution, the compiled binary will decode and pipe the script code to child shell/python/perl process to execute.
+ssc itself is not a compiler such as cc, it rather encodes a shell/python/perl script and generates c++ source code. It then uses the system compiler to compile a binary which behaves exactly like the original script. Upon execution, the compiled binary will decode and pipe the script code to child shell/python/perl process to execute.
 
 **This tool doesn't generate standalone binary. A script interpreter is neccessary for the binary to run.**
 
@@ -11,9 +11,9 @@ sshc itself is not a compiler such as cc, it rather encodes a shell/python/perl 
 Install gettext, g++ (5.2 or above), then
 
 ```bash
-sshc script.sh binary
-sshc script.py binary
-sshc script.pl binary
+ssc script.sh binary
+ssc script.py binary
+ssc script.pl binary
 ```
 
 # Features and Limitations
