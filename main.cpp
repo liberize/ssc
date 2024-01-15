@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
         }
         if (argc > 1) {
             switch (format) {
-                case SHELL:  args.emplace_back("-s"); break;
+                case SHELL:  args.emplace_back("-s"); args.emplace_back("--"); break;
                 case PYTHON:
                 case PERL:   args.emplace_back("-"); break;
                 default:     perror("unknown format"); return 4;
