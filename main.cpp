@@ -17,6 +17,7 @@ enum ScriptFormat {
     SHELL,
     PYTHON,
     PERL,
+    JAVASCRIPT,
 };
 
 int main(int argc, char* argv[])
@@ -47,6 +48,8 @@ int main(int argc, char* argv[])
             format = PYTHON;
         } else if (suffix == "pl") {
             format = PERL;
+        } else if (suffix == "js") {
+            format = JAVASCRIPT;
         }
 
         std::vector<std::string> args;
@@ -72,16 +75,22 @@ int main(int argc, char* argv[])
                     format = PYTHON;
                 } else if (exe.find("perl") != std::string::npos) {
                     format = PERL;
+                } else if (exe.find("node") != std::string::npos) {
+                    format = JAVASCRIPT;
                 }
             }
         }
         if (args.empty()) {
             switch (format) {
-                case SHELL:  args.emplace_back("sh"); break; // default to 'sh'
-                case PYTHON: args.emplace_back("python"); break; // default to 'python'
-                case PERL:   args.emplace_back("perl"); break; // default to 'perl'
-                default:     perror("unknown format"); return 4;
+                case SHELL:      args.emplace_back("sh"); break; // default to 'sh'
+                case PYTHON:     args.emplace_back("python"); break; // default to 'python'
+                case PERL:       args.emplace_back("perl"); break; // default to 'perl'
+                case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
+                default:         perror("unknown format"); return 4;
             }
+        }
+        if (format == JAVASCRIPT) {
+            args.emplace_back("--preserve-symlinks-main");
         }
         args.emplace_back("/proc/self/fd/" + std::to_string(fd_script[0]));
         for (auto i = 1; i < argc; i++) {

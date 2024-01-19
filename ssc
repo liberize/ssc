@@ -5,3 +5,4 @@ DIR="$(dirname "$0")"
 perl -pe "s/SCRIPT_FILE_NAME/$1/g; s/SCRIPT_CONTENT/\`cat '$1'\`/ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
 g++ -I"$DIR" -std=c++14 -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824 "$1.cpp" -o "$2" || exit 1
 strip "$2"
+rm -f "$1.cpp"
