@@ -10,7 +10,7 @@ Upon execution, the compiled binary will replace current process with real shell
 
 # Usage
 
-Install gettext, g++ (5.2 or above), then
+Install g++ (5.2 or above), then
 
 ```bash
 ./ssc script.sh binary
@@ -25,4 +25,5 @@ Install gettext, g++ (5.2 or above), then
 * **support shell/python/perl**
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
+* support large script (up to 8MB)
 * no anti-debugging features

@@ -21,8 +21,8 @@ enum ScriptFormat {
 
 int main(int argc, char* argv[])
 {
-    const char* file_name = AY_OBFUSCATE(R"SSHC(${SCRIPT_FILE_NAME})SSHC");
-    const char* script = AY_OBFUSCATE(R"SSHC(${SCRIPT_CONTENT})SSHC");
+    const char* file_name = AY_OBFUSCATE(R"SSC(SCRIPT_FILE_NAME)SSC");
+    const char* script = AY_OBFUSCATE(R"SSC(SCRIPT_CONTENT)SSC");
 
     int fd_script[2];
     if (pipe(fd_script) == -1) {
