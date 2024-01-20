@@ -1,3 +1,4 @@
+#define _LINUX_SOURCE_COMPAT
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,6 +6,9 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
+#include <sys/ptrace.h>
+#include <fcntl.h>
+#include <signal.h>
 
 #include <vector>
 #include <string>
@@ -12,6 +16,19 @@
 #include <iterator>
 #include <algorithm>
 #include "obfuscate.h"
+
+#if !defined(PT_ATTACHEXC) /* New replacement for PT_ATTACH */
+    #if defined(PTRACE_ATTACH)
+        #define PT_ATTACHEXC PTRACE_ATTACH
+    #elif defined(PT_ATTACH)
+        #define PT_ATTACHEXC PT_ATTACH
+    #endif
+#endif
+#if !defined(PT_DETACH)
+    #if defined(PTRACE_DETACH)
+        #define PT_DETACH PTRACE_DETACH
+    #endif
+#endif
 
 enum ScriptFormat {
     SHELL,
@@ -28,14 +45,14 @@ int main(int argc, char* argv[])
 
     int fd_script[2];
     if (pipe(fd_script) == -1) {
-        perror("create pipe failed");
+        perror(AY_OBFUSCATE("create pipe failed"));
         return 1;
     }
 
     auto ppid = getpid();
     auto p = fork();
     if (p < 0) {
-        perror("fork failed");
+        perror(AY_OBFUSCATE("fork failed"));
         return 2;
     } else if (p > 0) { // parent process
         close(fd_script[1]);
@@ -92,7 +109,7 @@ int main(int argc, char* argv[])
                 case PERL:       args.emplace_back("perl"); break; // default to 'perl'
                 case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
                 case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
-                default:         perror("unknown format"); return 4;
+                default:         perror(AY_OBFUSCATE("unknown format")); return 4;
             }
         }
         if (format == JAVASCRIPT) {
@@ -111,7 +128,7 @@ int main(int argc, char* argv[])
         cargs.push_back(NULL);
         execvp(cargs[0], (char* const*)cargs.data());
         // error in execvp
-        perror("execvp failed");
+        perror(AY_OBFUSCATE("execvp failed"));
         return 3;
 
     } else { // child process
@@ -121,6 +138,13 @@ int main(int argc, char* argv[])
         }
         if (getppid() != ppid) {
             return 2;
+        }
+        if (ptrace(PT_ATTACHEXC, ppid, 0, 0) == 0) {
+            ptrace(PT_DETACH, ppid, 0, 0);
+        } else {
+            //perror(AY_OBFUSCATE("being traced!"));
+            kill(ppid, SIGKILL);
+            return 3;
         }
 
         // write script content to writing end of fd_in pipe, then close it

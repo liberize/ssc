@@ -18,11 +18,15 @@ Install g++ (5.2 or above), then
 
 **Tips: you should run ssc on an OS with old enough glibc for portability of the generated binary.**
 
-# Features and Limitations
+# Features
 
 * **support shell/python/perl/nodejs/ruby**
+* support perhaps any shebang
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script (up to 8MB)
-* no anti-debugging features
-* \$0, $ARGV[0] or sys.argv[0] is replaced by /dev/fd/xxx
+* **anti-debugging** with simple ptrace detection
+
+# Limitations
+
+* \$0 / $ARGV[0] / sys.argv[0] is replaced by /dev/fd/xxx
