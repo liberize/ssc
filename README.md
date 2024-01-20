@@ -14,17 +14,15 @@ Install g++ (5.2 or above), then
 
 ```bash
 ./ssc script.sh binary
-./ssc script.py binary
-./ssc script.pl binary
-./ssc script.js binary
 ```
 
 **Tips: you should run ssc on an OS with old enough glibc for portability of the generated binary.**
 
 # Features and Limitations
 
-* **support shell/python/perl/nodejs**
+* **support shell/python/perl/nodejs/ruby**
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script (up to 8MB)
 * no anti-debugging features
+* \$0, $ARGV[0] or sys.argv[0] is replaced by /dev/fd/xxx

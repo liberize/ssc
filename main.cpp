@@ -18,6 +18,7 @@ enum ScriptFormat {
     PYTHON,
     PERL,
     JAVASCRIPT,
+    RUBY,
 };
 
 int main(int argc, char* argv[])
@@ -50,6 +51,8 @@ int main(int argc, char* argv[])
             format = PERL;
         } else if (suffix == "js") {
             format = JAVASCRIPT;
+        } else if (suffix == "rb") {
+            format = RUBY;
         }
 
         std::vector<std::string> args;
@@ -71,12 +74,14 @@ int main(int argc, char* argv[])
                 auto exe = (args[0] == "/usr/bin/env" && args.size() > 1) ? args[1] : args[0];
                 if (exe.compare(exe.size() - 2, 2, "sh") == 0) {
                     format = SHELL;
-                } else if (exe.find("python") != std::string::npos) {
+                } else if (exe.find("python") != std::string::npos || exe.find("conda") != std::string::npos) {
                     format = PYTHON;
                 } else if (exe.find("perl") != std::string::npos) {
                     format = PERL;
                 } else if (exe.find("node") != std::string::npos) {
                     format = JAVASCRIPT;
+                } else if (exe.find("ruby") != std::string::npos) {
+                    format = RUBY;
                 }
             }
         }
@@ -86,13 +91,14 @@ int main(int argc, char* argv[])
                 case PYTHON:     args.emplace_back("python"); break; // default to 'python'
                 case PERL:       args.emplace_back("perl"); break; // default to 'perl'
                 case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
+                case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
                 default:         perror("unknown format"); return 4;
             }
         }
         if (format == JAVASCRIPT) {
             args.emplace_back("--preserve-symlinks-main");
         }
-        args.emplace_back("/proc/self/fd/" + std::to_string(fd_script[0]));
+        args.emplace_back("/dev/fd/" + std::to_string(fd_script[0]));
         for (auto i = 1; i < argc; i++) {
             args.emplace_back(argv[i]);
         }
