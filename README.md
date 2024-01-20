@@ -6,11 +6,11 @@ ssc itself is not a compiler such as cc, it rather generates c++ source code wit
 
 Upon execution, the compiled binary will replace current process with real script interpreter process, and fork a child process to pipe the script code to parent process to execute.
 
-**This tool doesn't generate standalone binary. A system script interpreter is neccessary for the binary to run.**
+**This tool doesn't generate standalone binary. A script interpreter (systemwide or bundled) is neccessary for the binary to run.**
 
 # Usage
 
-Install g++ (5.2 or above), then
+Install g++ (5.2 or above) or clang++, then
 
 ```bash
 ./ssc script.sh binary
