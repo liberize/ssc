@@ -1,15 +1,13 @@
 #define _LINUX_SOURCE_COMPAT
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <string.h>
 #include <sys/wait.h>
-#include <sys/prctl.h>
 #include <sys/ptrace.h>
 #include <fcntl.h>
 #include <signal.h>
-
 #include <vector>
 #include <string>
 #include <sstream>
@@ -40,20 +38,37 @@ enum ScriptFormat {
 
 int main(int argc, char* argv[])
 {
+    auto ppid = getpid();
+    auto p = fork();
+    if (p < 0) {
+        perror(AY_OBFUSCATE("fork failed"));
+        return 1;
+    } else if (p > 0) { // parent process
+        waitpid(p, 0, 0);
+    } else {
+        if (ptrace(PT_ATTACHEXC, ppid, 0, 0) == 0) {
+            usleep(1);  // macOS: has to call something, otherwise detach fails
+            ptrace(PT_DETACH, ppid, 0, 0);
+        } else {
+            //perror(AY_OBFUSCATE("being traced!"));
+            kill(ppid, SIGKILL);
+        }
+        return 0;
+    }
+
     const char* file_name = AY_OBFUSCATE(R"SSC(SCRIPT_FILE_NAME)SSC");
     const char* script = AY_OBFUSCATE(R"SSC(SCRIPT_CONTENT)SSC");
 
     int fd_script[2];
     if (pipe(fd_script) == -1) {
         perror(AY_OBFUSCATE("create pipe failed"));
-        return 1;
+        return 2;
     }
 
-    auto ppid = getpid();
-    auto p = fork();
+    p = fork();
     if (p < 0) {
         perror(AY_OBFUSCATE("fork failed"));
-        return 2;
+        return 1;
     } else if (p > 0) { // parent process
         close(fd_script[1]);
         
@@ -132,20 +147,6 @@ int main(int argc, char* argv[])
         return 3;
 
     } else { // child process
-        // make sure child dies if parent die
-        if (prctl(PR_SET_PDEATHSIG, SIGTERM) == -1) {
-            return 1;
-        }
-        if (getppid() != ppid) {
-            return 2;
-        }
-        if (ptrace(PT_ATTACHEXC, ppid, 0, 0) == 0) {
-            ptrace(PT_DETACH, ppid, 0, 0);
-        } else {
-            //perror(AY_OBFUSCATE("being traced!"));
-            kill(ppid, SIGKILL);
-            return 3;
-        }
 
         // write script content to writing end of fd_in pipe, then close it
         close(fd_script[0]);
