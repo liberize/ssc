@@ -24,7 +24,7 @@ For more options
 
 ```
 Usage: ./ssc [-u] [-s] <script> <binary>
-  -u, --untraceable   make untraceable binay, requires root to run on linux
+  -u, --untraceable   make untraceable binary
   -s, --static        make static binary, more portable but bigger
   -v, --verbose       show debug messages
   -h, --help          display this help and exit

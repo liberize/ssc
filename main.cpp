@@ -13,9 +13,12 @@
 #include <algorithm>
 #include "obfuscate.h"
 
+#define OBF(x) (const char *) AY_OBFUSCATE(x)
+
 #ifdef UNTRACEABLE
 #include <sys/wait.h>
 #include <sys/ptrace.h>
+#include <fstream>
 
 #if !defined(PT_ATTACHEXC) /* New replacement for PT_ATTACH */
     #if defined(PTRACE_ATTACH)
@@ -42,39 +45,65 @@ enum ScriptFormat {
 int main(int argc, char* argv[])
 {
     int p;
-    auto ppid = getpid();
+    int ppid = getpid();
 
 #ifdef UNTRACEABLE
+#ifdef __linux__
+    std::ifstream ifs(OBF("/proc/self/status"));
+    std::string line, needle = OBF("TracerPid:\t");
+    int tracerPid = 0;
+    while (std::getline(ifs, line)) {
+        auto idx = line.find(needle);
+        if (idx != std::string::npos) {
+            tracerPid = atoi(line.c_str() + idx + needle.size());
+            break;
+        }
+    }
+    ifs.close();
+    if (tracerPid != 0) {
+        //fprintf(stderr, OBF("found tracer. tracerPid=%d\n"), tracerPid);
+        return 5;
+    }
+    std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
+    int ptraceScope = 0;
+    ifs2 >> ptraceScope;
+    ifs2.close();
+    if (getuid() != 0 && ptraceScope != 0) {
+        //fprintf(stderr, OBF("skip ptrace detection. uid=%d ptraceScope=%d\n"), getuid(), ptraceScope);
+        goto next;
+    }
+#endif
     p = fork();
     if (p < 0) {
-        perror(AY_OBFUSCATE("fork failed"));
+        perror(OBF("fork failed"));
         return 1;
     } else if (p > 0) { // parent process
         waitpid(p, 0, 0);
     } else {
         if (ptrace(PT_ATTACHEXC, ppid, 0, 0) == 0) {
-            usleep(1);  // macOS: has to call something, otherwise detach fails
+            wait(0);
             ptrace(PT_DETACH, ppid, 0, 0);
         } else {
-            //perror(AY_OBFUSCATE("being traced!"));
+            //perror(OBF("being traced!"));
             kill(ppid, SIGKILL);
         }
         return 0;
     }
+next:
 #endif
 
-    const char* file_name = AY_OBFUSCATE(R"SSC(SCRIPT_FILE_NAME)SSC");
-    const char* script = AY_OBFUSCATE(R"SSC(SCRIPT_CONTENT)SSC");
+    const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
+    const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
 
     int fd_script[2];
     if (pipe(fd_script) == -1) {
-        perror(AY_OBFUSCATE("create pipe failed"));
+        perror(OBF("create pipe failed"));
         return 2;
     }
 
     p = fork();
     if (p < 0) {
-        perror(AY_OBFUSCATE("fork failed"));
+        perror(OBF("fork failed"));
         return 1;
     } else if (p > 0) { // parent process
         close(fd_script[1]);
@@ -83,7 +112,7 @@ int main(int argc, char* argv[])
         ScriptFormat format = SHELL;
         std::string name(file_name);
         auto suffix = name.substr(name.find_last_of(".") + 1);
-        std::transform(suffix.begin(), suffix.end(), suffix.begin(), [](unsigned char c){ return std::tolower(c); });
+        std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) { return std::tolower(c); });
         if (suffix == "py" || suffix == "pyw") {
             format = PYTHON;
         } else if (suffix == "pl") {
@@ -131,7 +160,7 @@ int main(int argc, char* argv[])
                 case PERL:       args.emplace_back("perl"); break; // default to 'perl'
                 case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
                 case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
-                default:         perror(AY_OBFUSCATE("unknown format")); return 4;
+                default:         perror(OBF("unknown format")); return 4;
             }
         }
         if (format == JAVASCRIPT) {
@@ -150,7 +179,7 @@ int main(int argc, char* argv[])
         cargs.push_back(NULL);
         execvp(cargs[0], (char* const*)cargs.data());
         // error in execvp
-        perror(AY_OBFUSCATE("execvp failed"));
+        perror(OBF("execvp failed"));
         return 3;
 
     } else { // child process
