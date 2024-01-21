@@ -14,10 +14,21 @@ Install g++ (5.2 or above) or clang++, then
 
 ```bash
 ./ssc script binary
-./ssc -u script binary  # untraceable binary, requires root to run on linux
 ```
 
-**Tips: you should run ssc on an OS with old enough glibc for portability of the generated binary.**
+For more options
+
+```bash
+./ssc --help
+```
+
+```
+Usage: ./ssc [-u] [-s] <script> <binary>
+  -u, --untraceable   make untraceable binay, requires root to run on linux
+  -s, --static        make static binary
+  -v, --verbose       show debug messages
+  -h, --help          display this help and exit
+```
 
 # Features
 
