@@ -15,7 +15,7 @@ eval set -- $POSITIONAL_ARGS
 if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
     echo "Usage: $0 [-u] [-s] <script> <binary>"
     echo "  -u, --untraceable   make untraceable binay, requires root to run on linux"
-    echo "  -s, --static        make static binary"
+    echo "  -s, --static        make static binary, more portable but bigger"
     echo "  -v, --verbose       show debug messages"
     echo "  -h, --help          display this help and exit"
     exit 0
@@ -28,7 +28,9 @@ perl -pe "s/SCRIPT_FILE_NAME/$1/g; s/SCRIPT_CONTENT/\`cat '$1'\`/ge" "$DIR/main.
 
 # compile c++ source code to binary
 CXX="g++ -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
-command -v clang++ >/dev/null 2>&1 && CXX="clang++ -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
+if g++ -v 2>&1 | grep clang >/dev/null 2>&1; then
+  CXX="clang++ -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
+fi
 $CXX -I"$DIR" $CXXFLAGS -std=c++14 "$1.cpp" -o "$2" || exit 1
 strip "$2"
 

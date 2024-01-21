@@ -10,7 +10,7 @@ Upon execution, the compiled binary will replace current process with real scrip
 
 # Usage
 
-Install g++ (5.2 or above) or clang++, then
+Install g++ (5.2 or above), then
 
 ```bash
 ./ssc script binary
@@ -25,7 +25,7 @@ For more options
 ```
 Usage: ./ssc [-u] [-s] <script> <binary>
   -u, --untraceable   make untraceable binay, requires root to run on linux
-  -s, --static        make static binary
+  -s, --static        make static binary, more portable but bigger
   -v, --verbose       show debug messages
   -h, --help          display this help and exit
 ```
