@@ -1,10 +1,34 @@
 #!/bin/sh
 
-[ "$#" != 2 ] && echo "usage: $0 script.sh binary" && exit
+while [ -n "$1" ]; do
+  case "$1" in
+    -u|--untraceable) CXXFLAGS="$CXXFLAGS -DUNTRACEABLE";;
+    -v|--verbose)     set -x; CXXFLAGS="$CXXFLAGS -v";;
+    -h|--help)        SHOW_USAGE=1;;
+    -*|--*)           echo "Unknown option $1"; exit 1;;
+    *)                POSITIONAL_ARGS="$POSITIONAL_ARGS \"$1\"";;
+  esac
+  shift
+done
+eval set -- $POSITIONAL_ARGS
+if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
+    echo "Usage: $0 [-u] <script> <binary>"
+    echo "  -u, --untraceable   make untraceable binay, requires root on linux"
+    echo "  -v, --verbose       show debug messages"
+    echo "  -h, --help          display this help and exit"
+    exit 0
+fi
+
 DIR="$(dirname "$0")"
+
+# generate c++ source code with script code
 perl -pe "s/SCRIPT_FILE_NAME/$1/g; s/SCRIPT_CONTENT/\`cat '$1'\`/ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+
+# compile c++ source code to binary
 CXX="g++ -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
 command -v clang++ >/dev/null 2>&1 && CXX="clang++ -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
-$CXX -I"$DIR" -std=c++14 "$1.cpp" -o "$2" || exit 1
+$CXX -I"$DIR" $CXXFLAGS -std=c++14 "$1.cpp" -o "$2" || exit 1
 strip "$2"
+
+# cleanup
 rm -f "$1.cpp"

@@ -4,8 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/ptrace.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <vector>
@@ -14,6 +12,10 @@
 #include <iterator>
 #include <algorithm>
 #include "obfuscate.h"
+
+#ifdef UNTRACEABLE
+#include <sys/wait.h>
+#include <sys/ptrace.h>
 
 #if !defined(PT_ATTACHEXC) /* New replacement for PT_ATTACH */
     #if defined(PTRACE_ATTACH)
@@ -27,6 +29,7 @@
         #define PT_DETACH PTRACE_DETACH
     #endif
 #endif
+#endif
 
 enum ScriptFormat {
     SHELL,
@@ -38,8 +41,11 @@ enum ScriptFormat {
 
 int main(int argc, char* argv[])
 {
+    int p;
     auto ppid = getpid();
-    auto p = fork();
+
+#ifdef UNTRACEABLE
+    p = fork();
     if (p < 0) {
         perror(AY_OBFUSCATE("fork failed"));
         return 1;
@@ -55,6 +61,7 @@ int main(int argc, char* argv[])
         }
         return 0;
     }
+#endif
 
     const char* file_name = AY_OBFUSCATE(R"SSC(SCRIPT_FILE_NAME)SSC");
     const char* script = AY_OBFUSCATE(R"SSC(SCRIPT_CONTENT)SSC");
