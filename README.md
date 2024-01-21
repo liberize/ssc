@@ -13,7 +13,8 @@ Upon execution, the compiled binary will replace current process with real scrip
 Install g++ (5.2 or above) or clang++, then
 
 ```bash
-./ssc script.sh binary
+./ssc script binary
+./ssc -u script binary  # untraceable binary, requires root to run on linux
 ```
 
 **Tips: you should run ssc on an OS with old enough glibc for portability of the generated binary.**
