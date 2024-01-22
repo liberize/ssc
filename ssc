@@ -23,8 +23,11 @@ fi
 
 DIR="$(dirname "$0")"
 
+# Attempt to escape special character in input file name
+target_file=$(sed -r 's/[]\/$*_.^[]/\\&/g' <<< "$1")
+
 # generate c++ source code with script code
-perl -pe "s/SCRIPT_FILE_NAME/$1/g; s/SCRIPT_CONTENT/\`cat '$1'\`/ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+perl -pe "s/SCRIPT_FILE_NAME/$target_file/g; s/SCRIPT_CONTENT/\`cat '$target_file'\`/ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
 
 # compile c++ source code to binary
 CXX="g++ -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
