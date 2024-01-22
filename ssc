@@ -24,7 +24,7 @@ fi
 DIR="$(dirname "$0")"
 
 # generate c++ source code with script code
-perl -pe "s/SCRIPT_FILE_NAME/$1/g; s/SCRIPT_CONTENT/\`cat '$1'\`/ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
 
 # compile c++ source code to binary
 CXX="g++ -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
