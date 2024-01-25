@@ -40,6 +40,7 @@ enum ScriptFormat {
     PERL,
     JAVASCRIPT,
     RUBY,
+    PHP,
 };
 
 int main(int argc, char* argv[])
@@ -121,6 +122,8 @@ next:
             format = JAVASCRIPT;
         } else if (suffix == "rb") {
             format = RUBY;
+        } else if (suffix == "php") {
+            format = PHP;
         }
 
         std::vector<std::string> args;
@@ -150,6 +153,8 @@ next:
                     format = JAVASCRIPT;
                 } else if (exe.find("ruby") != std::string::npos) {
                     format = RUBY;
+                } else if (exe.find("php") != std::string::npos) {
+                    format = PHP;
                 }
             }
         }
@@ -160,6 +165,7 @@ next:
                 case PERL:       args.emplace_back("perl"); break; // default to 'perl'
                 case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
                 case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
+                case PHP:        args.emplace_back("php"); break; // default to 'php'
                 default:         perror(OBF("unknown format")); return 4;
             }
         }

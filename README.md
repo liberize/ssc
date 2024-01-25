@@ -32,7 +32,7 @@ Usage: ./ssc [-u] [-s] <script> <binary>
 
 # Features
 
-* **support shell/python/perl/nodejs/ruby**
+* **support shell/python/perl/nodejs/ruby/php**
 * support perhaps any shebang
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
