@@ -111,10 +111,13 @@ next:
         
         // detect script format by file name suffix
         ScriptFormat format = SHELL;
-        std::string name(file_name);
+        std::string name(file_name), shell("sh");
         auto suffix = name.substr(name.find_last_of(".") + 1);
         std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) { return std::tolower(c); });
-        if (suffix == "py" || suffix == "pyw") {
+        if (suffix.size() >= 2 && suffix.compare(suffix.size() - 2, 2, "sh") == 0) {
+            format = SHELL;
+            shell = suffix;
+        } else if (suffix == "py" || suffix == "pyw") {
             format = PYTHON;
         } else if (suffix == "pl") {
             format = PERL;
@@ -132,19 +135,19 @@ next:
             std::string line;
             auto p = strpbrk(script, "\r\n");
             if (p) {
-                line = std::string(script + 2, p - script - 2);
+                line.assign(script + 2, p - script - 2);
             } else {
-                line = std::string(script + 2);
+                line.assign(script + 2);
             }
             std::istringstream iss(line);
-            args = std::vector<std::string>{std::istream_iterator<std::string>{iss},
-                std::istream_iterator<std::string>{}};
+            args.assign(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{});
             
             // detect script format by shebang
             if (!args.empty()) {
                 auto exe = (args[0] == "/usr/bin/env" && args.size() > 1) ? args[1] : args[0];
-                if (exe.compare(exe.size() - 2, 2, "sh") == 0) {
+                if (exe.size() >= 2 && exe.compare(exe.size() - 2, 2, "sh") == 0) {
                     format = SHELL;
+                    shell = exe.substr(exe.find_last_of("/") + 1);
                 } else if (exe.find("python") != std::string::npos || exe.find("conda") != std::string::npos) {
                     format = PYTHON;
                 } else if (exe.find("perl") != std::string::npos) {
@@ -160,7 +163,7 @@ next:
         }
         if (args.empty()) {
             switch (format) {
-                case SHELL:      args.emplace_back("sh"); break; // default to 'sh'
+                case SHELL:      args.emplace_back(shell); break; // default to 'sh'
                 case PYTHON:     args.emplace_back("python"); break; // default to 'python'
                 case PERL:       args.emplace_back("perl"); break; // default to 'perl'
                 case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
