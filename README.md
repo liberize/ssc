@@ -23,9 +23,10 @@ For more options
 ```
 
 ```
-Usage: ./ssc [-u] [-s] <script> <binary>
+Usage: ./ssc [-u] [-s] [-r] <script> <binary>
   -u, --untraceable   make untraceable binary
   -s, --static        make static binary, more portable but bigger
+  -r, --random-key    use random key for obfuscation
   -v, --verbose       show debug messages
   -h, --help          display this help and exit
 ```
@@ -33,7 +34,7 @@ Usage: ./ssc [-u] [-s] <script> <binary>
 # Features
 
 * support Linux/macOS/Cygwin
-* **support shell/python/perl/nodejs/ruby/php**
+* **support shell/python/perl/nodejs/ruby/php** or other scripts with custom shebang
 * support relative path in shebang, so it's possible to call a bundled interpreter
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**

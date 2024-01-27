@@ -17,7 +17,11 @@
 #endif
 #include "obfuscate.h"
 
-#define OBF(x) (const char *) AY_OBFUSCATE(x)
+#ifdef OBFUSCATE_KEY
+    #define OBF(x) (const char *) AY_OBFUSCATE_KEY(x, OBFUSCATE_KEY)
+#else
+    #define OBF(x) (const char *) AY_OBFUSCATE(x)
+#endif
 
 #ifdef UNTRACEABLE
 #if defined(__CYGWIN__)
