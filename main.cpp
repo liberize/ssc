@@ -6,16 +6,31 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <limits.h>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <iterator>
 #include <algorithm>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 #include "obfuscate.h"
 
 #define OBF(x) (const char *) AY_OBFUSCATE(x)
 
 #ifdef UNTRACEABLE
+#if defined(__CYGWIN__)
+#include <Windows.h>
+
+inline void check_debugger() {
+    if (IsDebuggerPresent()) {
+        //perror(OBF("debugger present!"));
+        _exit(1);
+    }
+}
+
+#elif defined(__linux__) || defined(__APPLE__)
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <fstream>
@@ -32,23 +47,8 @@
         #define PT_DETACH PTRACE_DETACH
     #endif
 #endif
-#endif
 
-enum ScriptFormat {
-    SHELL,
-    PYTHON,
-    PERL,
-    JAVASCRIPT,
-    RUBY,
-    PHP,
-};
-
-int main(int argc, char* argv[])
-{
-    int p;
-    int ppid = getpid();
-
-#ifdef UNTRACEABLE
+inline void check_debugger() {
 #ifdef __linux__
     std::ifstream ifs(OBF("/proc/self/status"));
     std::string line, needle = OBF("TracerPid:\t");
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     ifs.close();
     if (tracerPid != 0) {
         //fprintf(stderr, OBF("found tracer. tracerPid=%d\n"), tracerPid);
-        return 5;
+        _exit(1);
     }
     std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
     int ptraceScope = 0;
@@ -71,13 +71,14 @@ int main(int argc, char* argv[])
     ifs2.close();
     if (getuid() != 0 && ptraceScope != 0) {
         //fprintf(stderr, OBF("skip ptrace detection. uid=%d ptraceScope=%d\n"), getuid(), ptraceScope);
-        goto next;
+        return;
     }
 #endif
-    p = fork();
+    int ppid = getpid();
+    int p = fork();
     if (p < 0) {
         perror(OBF("fork failed"));
-        return 1;
+        _exit(1);
     } else if (p > 0) { // parent process
         waitpid(p, 0, 0);
     } else {
@@ -88,9 +89,49 @@ int main(int argc, char* argv[])
             //perror(OBF("being traced!"));
             kill(ppid, SIGKILL);
         }
-        return 0;
+        _exit(0);
     }
-next:
+}
+#endif
+#endif
+
+inline std::string get_exe_path() {
+    char buf[PATH_MAX];
+    int size = sizeof(buf);
+#if defined(__linux__) || defined(__CYGWIN__)
+    size = readlink(OBF("/proc/self/exe"), buf, size);
+    return size == -1 ? std::string() : std::string(buf, size);
+#elif defined(__APPLE__)
+    return _NSGetExecutablePath(buf, (unsigned*) &size) ? std::string() : std::string(buf, size);
+#else
+    #error unsupported operating system!
+#endif
+}
+
+inline std::string dir_name(const std::string& s) {
+    return s.substr(0, s.find_last_of('/') + 1);
+}
+
+inline std::string base_name(const std::string& s) {
+    return s.substr(s.find_last_of('/') + 1);
+}
+
+inline bool str_ends_with(const std::string& s, const std::string& e) {
+    return s.size() >= e.size() && s.compare(s.size() - e.size(), e.size(), e) == 0;
+}
+
+enum ScriptFormat {
+    SHELL,
+    PYTHON,
+    PERL,
+    JAVASCRIPT,
+    RUBY,
+    PHP,
+};
+
+int main(int argc, char* argv[]) {
+#ifdef UNTRACEABLE
+    check_debugger();
 #endif
 
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
@@ -102,31 +143,40 @@ next:
         return 2;
     }
 
-    p = fork();
+    int p = fork();
     if (p < 0) {
         perror(OBF("fork failed"));
         return 1;
     } else if (p > 0) { // parent process
         close(fd_script[1]);
         
+        std::string scriptPath(file_name), binaryPath = get_exe_path();
+        setenv("SSC_SCRIPT_NAME", base_name(scriptPath).c_str(), 1);
+        setenv("SSC_BINARY_NAME", base_name(binaryPath).c_str(), 1);
+        
         // detect script format by file name suffix
         ScriptFormat format = SHELL;
-        std::string name(file_name), shell("sh");
-        auto suffix = name.substr(name.find_last_of(".") + 1);
-        std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) { return std::tolower(c); });
-        if (suffix.size() >= 2 && suffix.compare(suffix.size() - 2, 2, "sh") == 0) {
-            format = SHELL;
-            shell = suffix;
-        } else if (suffix == "py" || suffix == "pyw") {
-            format = PYTHON;
-        } else if (suffix == "pl") {
-            format = PERL;
-        } else if (suffix == "js") {
-            format = JAVASCRIPT;
-        } else if (suffix == "rb") {
-            format = RUBY;
-        } else if (suffix == "php") {
-            format = PHP;
+        std::string shell("sh");
+        auto pos = scriptPath.find_last_of(".");
+        if (pos != std::string::npos) {
+            auto suffix = scriptPath.substr(pos + 1);
+            std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
+                return std::tolower(c);
+            });
+            if (str_ends_with(suffix, "sh")) {
+                format = SHELL;
+                shell = suffix;
+            } else if (suffix == "py" || suffix == "pyw") {
+                format = PYTHON;
+            } else if (suffix == "pl") {
+                format = PERL;
+            } else if (suffix == "js") {
+                format = JAVASCRIPT;
+            } else if (suffix == "rb") {
+                format = RUBY;
+            } else if (suffix == "php") {
+                format = PHP;
+            }
         }
 
         std::vector<std::string> args;
@@ -140,14 +190,15 @@ next:
                 line.assign(script + 2);
             }
             std::istringstream iss(line);
+            //FIXME: handle quotes and spaces (maybe use wordexp?)
             args.assign(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{});
             
             // detect script format by shebang
             if (!args.empty()) {
                 auto exe = (args[0] == "/usr/bin/env" && args.size() > 1) ? args[1] : args[0];
-                if (exe.size() >= 2 && exe.compare(exe.size() - 2, 2, "sh") == 0) {
+                if (str_ends_with(exe, "sh")) {
                     format = SHELL;
-                    shell = exe.substr(exe.find_last_of("/") + 1);
+                    shell = base_name(exe);
                 } else if (exe.find("python") != std::string::npos || exe.find("conda") != std::string::npos) {
                     format = PYTHON;
                 } else if (exe.find("perl") != std::string::npos) {
@@ -158,6 +209,11 @@ next:
                     format = RUBY;
                 } else if (exe.find("php") != std::string::npos) {
                     format = PHP;
+                }
+                // support relative path
+                pos = args[0].find('/');
+                if (pos != std::string::npos && pos != 0) {
+                    args[0] = dir_name(binaryPath) + args[0];
                 }
             }
         }
@@ -175,7 +231,7 @@ next:
         if (format == JAVASCRIPT) {
             args.emplace_back("--preserve-symlinks-main");
         }
-        args.emplace_back("/dev/fd/" + std::to_string(fd_script[0]));
+        args.emplace_back(OBF("/dev/fd/") + std::to_string(fd_script[0]));
         for (auto i = 1; i < argc; i++) {
             args.emplace_back(argv[i]);
         }

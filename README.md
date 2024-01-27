@@ -32,8 +32,9 @@ Usage: ./ssc [-u] [-s] <script> <binary>
 
 # Features
 
+* support Linux/macOS/Cygwin
 * **support shell/python/perl/nodejs/ruby/php**
-* support perhaps any shebang
+* support relative path in shebang, so it's possible to call a bundled interpreter
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script (up to 8MB)
@@ -41,4 +42,4 @@ Usage: ./ssc [-u] [-s] <script> <binary>
 
 # Limitations
 
-* \$0 / $ARGV[0] / sys.argv[0] is replaced by /dev/fd/xxx
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_SCRIPT_NAME` or `$SSC_BINARY_NAME` instead.
