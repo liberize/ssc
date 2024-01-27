@@ -37,7 +37,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script (up to 8MB)
 * **anti-debugging** with simple ptrace detection
-* support embeding interpreter to output binary
+* support embeding interpreter into output binary
 
 # Limitations
 
