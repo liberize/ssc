@@ -100,29 +100,88 @@ inline void check_debugger() {
 #endif
 
 inline std::string get_exe_path() {
-    char buf[PATH_MAX];
+    char buf[PATH_MAX] = {0};
     int size = sizeof(buf);
 #if defined(__linux__) || defined(__CYGWIN__)
     size = readlink(OBF("/proc/self/exe"), buf, size);
     return size == -1 ? std::string() : std::string(buf, size);
 #elif defined(__APPLE__)
-    return _NSGetExecutablePath(buf, (unsigned*) &size) ? std::string() : std::string(buf, size);
+    return _NSGetExecutablePath(buf, (unsigned*) &size) ? std::string() : std::string(buf);
 #else
     #error unsupported operating system!
 #endif
 }
 
 inline std::string dir_name(const std::string& s) {
-    return s.substr(0, s.find_last_of('/') + 1);
+    return s.substr(0, s.find_last_of("\\/") + 1);
 }
 
 inline std::string base_name(const std::string& s) {
-    return s.substr(s.find_last_of('/') + 1);
+    return s.substr(s.find_last_of("\\/") + 1);
 }
 
 inline bool str_ends_with(const std::string& s, const std::string& e) {
     return s.size() >= e.size() && s.compare(s.size() - e.size(), e.size(), e) == 0;
 }
+
+#ifdef EMBED_INTERPRETER_NAME
+#include <fstream>
+#include <ftw.h>
+
+#ifdef __APPLE__
+#include <mach-o/getsect.h>
+#else
+extern char _binary___start;
+extern char _binary___end;
+#endif
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+static int remove_file(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
+    remove(pathname);
+    return 0;
+}
+
+inline std::string extract_interpreter() {
+    auto dir = OBF("/tmp/ssc");
+    nftw(dir, remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
+    mkdir(dir, 0755);
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/%s-XXXXXX", dir, base_name(STR(EMBED_INTERPRETER_NAME)).c_str());
+    auto fd = mkstemp(path);
+    if (fd == -1) {
+        perror(OBF("create output file failed"));
+        _exit(1);
+    }
+#ifdef __APPLE__
+    const struct section_64 *sect = getsectbyname("binary", "_");
+    if (!sect) {
+        perror(OBF("find data section failed"));
+        _exit(1);
+    }
+    char *buf = new char[sect->size];
+    int fd2 = open(get_exe_path().c_str(), O_RDONLY);
+    if (!fd2) {
+        perror(OBF("open executable file failed"));
+        _exit(1);
+    }
+    lseek(fd2, sect->offset, SEEK_SET);
+    if (read(fd2, buf, sect->size) != sect->size) {
+        perror(OBF("read data section failed"));
+        _exit(1);
+    }
+    close(fd2);
+    write(fd, buf, sect->size);
+    delete[] buf;
+#else
+    write(fd, &_binary___start, &_binary___end - &_binary___start);
+#endif
+    close(fd);
+    chmod(path, 0755);
+    return path;
+}
+#endif
 
 enum ScriptFormat {
     SHELL,
@@ -136,6 +195,10 @@ enum ScriptFormat {
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
     check_debugger();
+#endif
+    std::string interpreterPath;
+#ifdef EMBED_INTERPRETER_NAME
+    interpreterPath = extract_interpreter();
 #endif
 
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
@@ -199,19 +262,21 @@ int main(int argc, char* argv[]) {
             
             // detect script format by shebang
             if (!args.empty()) {
-                auto exe = (args[0] == "/usr/bin/env" && args.size() > 1) ? args[1] : args[0];
-                if (str_ends_with(exe, "sh")) {
+                if (args[0] == "/usr/bin/env" && args.size() > 1) {
+                    args.erase(args.begin());
+                }
+                if (str_ends_with(args[0], "sh")) {
                     format = SHELL;
-                    shell = base_name(exe);
-                } else if (exe.find("python") != std::string::npos || exe.find("conda") != std::string::npos) {
+                    shell = base_name(args[0]);
+                } else if (args[0].find("python") != std::string::npos || args[0].find("conda") != std::string::npos) {
                     format = PYTHON;
-                } else if (exe.find("perl") != std::string::npos) {
+                } else if (args[0].find("perl") != std::string::npos) {
                     format = PERL;
-                } else if (exe.find("node") != std::string::npos) {
+                } else if (args[0].find("node") != std::string::npos) {
                     format = JAVASCRIPT;
-                } else if (exe.find("ruby") != std::string::npos) {
+                } else if (args[0].find("ruby") != std::string::npos) {
                     format = RUBY;
-                } else if (exe.find("php") != std::string::npos) {
+                } else if (args[0].find("php") != std::string::npos) {
                     format = PHP;
                 }
                 // support relative path
@@ -246,7 +311,7 @@ int main(int argc, char* argv[]) {
             cargs.push_back(arg.c_str());
         }
         cargs.push_back(NULL);
-        execvp(cargs[0], (char* const*)cargs.data());
+        execvp(interpreterPath.empty() ? cargs[0] : interpreterPath.c_str(), (char* const*) cargs.data());
         // error in execvp
         perror(OBF("execvp failed"));
         return 3;
