@@ -53,11 +53,11 @@ If the program in the shebang is a relative path, the interpreter of the path re
 
 If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
 
-# Cross compile
+# Cross compiling
 
-For example, to compile arm64 binary on x86_64 ubuntu:
+For example, to compile arm64 binary on x86_64 ubuntu
 
 ```bash
 apt install g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-CROSS_COMPILE=aarch64-linux-gnu- ./ssc script binary -s
+CROSS_COMPILE=aarch64-linux-gnu- ./ssc script binary  # may add -s flag
 ```
