@@ -16,11 +16,7 @@ Install g++ (5.2 or above), then
 ./ssc script binary
 ```
 
-For more options
-
-```bash
-./ssc --help
-```
+More options
 
 ```
 Usage: ./ssc [-u] [-s] [-r] <script> <binary>
