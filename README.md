@@ -43,7 +43,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
 
 * `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_SCRIPT_NAME` or `$SSC_BINARY_NAME` instead.
 
-# Which interpreter will be used
+# Interpreter selection
 
 If the script has no shebang, it's format is deduced from file extension, and a default interpreter in PATH is used.
 
@@ -51,4 +51,4 @@ If the script has a shebang, the shebang will be used to launch an interpreter p
 
 If the program in the shebang is a relative path, the interpreter of the path relative to the binary is used. 
 
-If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/, then be used to launch an interpreter process. In this case, the program specified in shebang will appear as process name, but not being used actually.
+If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
