@@ -148,10 +148,16 @@ inline std::string extract_interpreter() {
     nftw(dir, remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
     mkdir(dir, 0755);
     char path[PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s-XXXXXX", dir, base_name(STR(EMBED_INTERPRETER_NAME)).c_str());
-    auto fd = mkstemp(path);
+    snprintf(path, sizeof(path), "%s/XXXXXX", dir);
+    if (!mkdtemp(path)) {
+        perror(OBF("create output directory failed"));
+        _exit(1);
+    }
+    strcat(path, "/");
+    strcat(path, base_name(STR(EMBED_INTERPRETER_NAME)).c_str());
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd == -1) {
-        perror(OBF("create output file failed"));
+        perror(OBF("open output file failed"));
         _exit(1);
     }
 #ifdef __APPLE__
@@ -162,7 +168,7 @@ inline std::string extract_interpreter() {
     }
     char *buf = new char[sect->size];
     int fd2 = open(get_exe_path().c_str(), O_RDONLY);
-    if (!fd2) {
+    if (fd2 == -1) {
         perror(OBF("open executable file failed"));
         _exit(1);
     }
@@ -172,10 +178,17 @@ inline std::string extract_interpreter() {
         _exit(1);
     }
     close(fd2);
-    write(fd, buf, sect->size);
+    if (write(fd, buf, sect->size) != sect->size) {
+        perror(OBF("write output file failed"));
+        _exit(1);
+    }
     delete[] buf;
 #else
-    write(fd, &_binary___start, &_binary___end - &_binary___start);
+    auto size = &_binary___end - &_binary___start;
+    if (write(fd, &_binary___start, size) != size) {
+        perror(OBF("write output file failed"));
+        _exit(1);
+    }
 #endif
     close(fd);
     chmod(path, 0755);
@@ -199,6 +212,7 @@ int main(int argc, char* argv[]) {
     std::string interpreterPath;
 #ifdef EMBED_INTERPRETER_NAME
     interpreterPath = extract_interpreter();
+    setenv("PATH", (dir_name(interpreterPath) + ':' + getenv("PATH")).c_str(), 1);
 #endif
 
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
