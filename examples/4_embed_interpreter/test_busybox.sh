@@ -1,4 +1,6 @@
-#!./busybox sh
+#!busybox sh
+#!sh
+# both works
 
 echo "\$@ is $@"
 
