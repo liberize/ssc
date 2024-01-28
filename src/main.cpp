@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
         script = shebang_end;
         if (format == SHELL) {
             if (shell == "bash") {
-                // BASH_ARGV0 is only supported for bash 5, we use another approach
+                // only bash 5+ support BASH_ARGV0
                 //dprintf(fd_script[1], "BASH_ARGV0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "zsh") {
                 dprintf(fd_script[1], "0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
