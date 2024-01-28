@@ -14,7 +14,7 @@ The interpreter is not deleted by default, you have to delete it in your script 
 
 ## Example: bash-static
 
-`bash-static` is a static build of bash. It doesn't come with any dependencies, so it's easy to bundle it to our app.
+`bash-static` is a static build of bash. It doesn't come with any dependencies, so it's easy to embed it to our app.
 
 ```bash
 # download bash-static
