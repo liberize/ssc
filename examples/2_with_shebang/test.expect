@@ -1,0 +1,5 @@
+#!/usr/bin/expect
+# free to use any shebang
+
+expect "hello"
+send "world"

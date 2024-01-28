@@ -1,0 +1,6 @@
+#!/bin/sh
+# shebang is required if no file extension
+
+echo "\$@ is $@"
+echo "command line: $0 $*"
+echo "hello world"
