@@ -35,15 +35,101 @@ int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
     check_debugger();
 #endif
+
     std::string interpreterPath;
 #ifdef EMBED_INTERPRETER_NAME
     interpreterPath = extract_interpreter();
+    setenv("SSC_INTERPRETER_PATH", interpreterPath.c_str(), 1);
     setenv("PATH", (dir_name(interpreterPath) + ':' + getenv("PATH")).c_str(), 1);
 #endif
 
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
     const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
 
+    std::string scriptName(file_name), exePath = get_exe_path();
+    setenv("SSC_EXECUTABLE_PATH", exePath.c_str(), 1);
+    setenv("SSC_ARGV0", argv[0], 1);
+    
+    // detect script format by file name suffix
+    ScriptFormat format = SHELL;
+    std::string shell("sh");
+    auto pos = scriptName.find_last_of(".");
+    if (pos != std::string::npos) {
+        auto suffix = scriptName.substr(pos + 1);
+        std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
+            return std::tolower(c);
+        });
+        if (str_ends_with(suffix, "sh")) {
+            format = SHELL;
+            shell = suffix;
+        } else if (suffix == "py" || suffix == "pyw") {
+            format = PYTHON;
+        } else if (suffix == "pl") {
+            format = PERL;
+        } else if (suffix == "js") {
+            format = JAVASCRIPT;
+        } else if (suffix == "rb") {
+            format = RUBY;
+        } else if (suffix == "php") {
+            format = PHP;
+        }
+    }
+
+    std::vector<std::string> args;
+    const char *shebang_end = script;
+    // parse shebang
+    if (script[0] == '#' && script[1] == '!') {
+        std::string line;
+        auto p = strpbrk(script, "\r\n");
+        if (p) {
+            line.assign(script + 2, p - script - 2);
+            shebang_end = p + (p[0] == '\r' && p[1] == '\n' ? 2 : 1);
+        } else {
+            line.assign(script + 2);
+            shebang_end = script + strlen(script);
+        }
+        std::istringstream iss(line);
+        //FIXME: handle quotes and spaces (maybe use wordexp?)
+        args.assign(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{});
+        
+        // detect script format by shebang
+        if (!args.empty()) {
+            if (args[0] == "/usr/bin/env" && args.size() > 1) {
+                args.erase(args.begin());
+            }
+            if (str_ends_with(args[0], "sh")) {
+                format = SHELL;
+                shell = base_name(args[0]);
+            } else if (args[0].find("python") != std::string::npos || args[0].find("conda") != std::string::npos) {
+                format = PYTHON;
+            } else if (args[0].find("perl") != std::string::npos) {
+                format = PERL;
+            } else if (args[0].find("node") != std::string::npos) {
+                format = JAVASCRIPT;
+            } else if (args[0].find("ruby") != std::string::npos) {
+                format = RUBY;
+            } else if (args[0].find("php") != std::string::npos) {
+                format = PHP;
+            }
+            // support relative path
+            pos = args[0].find('/');
+            if (pos != std::string::npos && pos != 0) {
+                args[0] = dir_name(exePath) + args[0];
+            }
+        }
+    }
+    if (args.empty()) {
+        switch (format) {
+            case SHELL:      args.emplace_back(shell); break; // default to 'sh'
+            case PYTHON:     args.emplace_back("python"); break; // default to 'python'
+            case PERL:       args.emplace_back("perl"); break; // default to 'perl'
+            case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
+            case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
+            case PHP:        args.emplace_back("php"); break; // default to 'php'
+            default:         perror(OBF("unknown format")); return 4;
+        }
+    }
+    
     int fd_script[2];
     if (pipe(fd_script) == -1) {
         perror(OBF("create pipe failed"));
@@ -57,94 +143,22 @@ int main(int argc, char* argv[]) {
     } else if (p > 0) { // parent process
         close(fd_script[1]);
         
-        std::string scriptName(file_name), exePath = get_exe_path();
-        setenv("SSC_EXECUTABLE_PATH", exePath.c_str(), 1);
-        setenv("SSC_INTERPRETER_PATH", interpreterPath.c_str(), 1);
-        
-        // detect script format by file name suffix
-        ScriptFormat format = SHELL;
-        std::string shell("sh");
-        auto pos = scriptName.find_last_of(".");
-        if (pos != std::string::npos) {
-            auto suffix = scriptName.substr(pos + 1);
-            std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
-                return std::tolower(c);
-            });
-            if (str_ends_with(suffix, "sh")) {
-                format = SHELL;
-                shell = suffix;
-            } else if (suffix == "py" || suffix == "pyw") {
-                format = PYTHON;
-            } else if (suffix == "pl") {
-                format = PERL;
-            } else if (suffix == "js") {
-                format = JAVASCRIPT;
-            } else if (suffix == "rb") {
-                format = RUBY;
-            } else if (suffix == "php") {
-                format = PHP;
-            }
-        }
-
-        std::vector<std::string> args;
-        // parse shebang
-        if (script[0] == '#' && script[1] == '!') {
-            std::string line;
-            auto p = strpbrk(script, "\r\n");
-            if (p) {
-                line.assign(script + 2, p - script - 2);
-            } else {
-                line.assign(script + 2);
-            }
-            std::istringstream iss(line);
-            //FIXME: handle quotes and spaces (maybe use wordexp?)
-            args.assign(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{});
-            
-            // detect script format by shebang
-            if (!args.empty()) {
-                if (args[0] == "/usr/bin/env" && args.size() > 1) {
-                    args.erase(args.begin());
-                }
-                if (str_ends_with(args[0], "sh")) {
-                    format = SHELL;
-                    shell = base_name(args[0]);
-                } else if (args[0].find("python") != std::string::npos || args[0].find("conda") != std::string::npos) {
-                    format = PYTHON;
-                } else if (args[0].find("perl") != std::string::npos) {
-                    format = PERL;
-                } else if (args[0].find("node") != std::string::npos) {
-                    format = JAVASCRIPT;
-                } else if (args[0].find("ruby") != std::string::npos) {
-                    format = RUBY;
-                } else if (args[0].find("php") != std::string::npos) {
-                    format = PHP;
-                }
-                // support relative path
-                pos = args[0].find('/');
-                if (pos != std::string::npos && pos != 0) {
-                    args[0] = dir_name(exePath) + args[0];
-                }
-            }
-        }
-        if (args.empty()) {
-            switch (format) {
-                case SHELL:      args.emplace_back(shell); break; // default to 'sh'
-                case PYTHON:     args.emplace_back("python"); break; // default to 'python'
-                case PERL:       args.emplace_back("perl"); break; // default to 'perl'
-                case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
-                case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
-                case PHP:        args.emplace_back("php"); break; // default to 'php'
-                default:         perror(OBF("unknown format")); return 4;
-            }
-        }
         if (format == JAVASCRIPT) {
             args.emplace_back("--preserve-symlinks-main");
         }
+#ifdef FIX_ARGV0
+        if (format == SHELL) {
+            args.emplace_back("-c");
+            args.emplace_back(OBF(". /dev/fd/") + std::to_string(fd_script[0]));
+            args.emplace_back(argv[0]);
+        } else
+#endif
         args.emplace_back(OBF("/dev/fd/") + std::to_string(fd_script[0]));
+
         for (auto i = 1; i < argc; i++) {
             args.emplace_back(argv[i]);
         }
-        
+
         std::vector<const char*> cargs;
         cargs.reserve(args.size() + 1);
         for (const auto& arg : args) {
@@ -158,8 +172,29 @@ int main(int argc, char* argv[]) {
 
     } else { // child process
 
-        // write script content to writing end of fd_in pipe, then close it
         close(fd_script[0]);
+
+#ifdef FIX_ARGV0
+        script = shebang_end;
+        if (format == SHELL) {
+            if (shell == "bash") {
+                // BASH_ARGV0 is only supported for bash 5, we use another approach
+                //dprintf(fd_script[1], "BASH_ARGV0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+            } else if (shell == "zsh") {
+                dprintf(fd_script[1], "0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+            } else if (shell == "fish") {
+                dprintf(fd_script[1], "set 0 '%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+            }
+        } else if (format == PYTHON) {
+            dprintf(fd_script[1], "import sys; sys.argv[0] = '''%s'''\n", argv[0]);
+        } else if (format == PERL) {
+            dprintf(fd_script[1], "$0 = '%s';\n", str_replace_all(argv[0], "'", "\\'").c_str());
+        } else if (format == JAVASCRIPT) {
+            dprintf(fd_script[1], " __filename = `%s`; for (var i = 0; i < process.argv.length; i++) { if (process.argv[i].startsWith('/dev/fd/')) { process.argv[i] = `%s`; break; } }\n",
+                    argv[0], argv[0]);
+        }
+#endif
+        // write script content to writing end of fd_in pipe, then close it
         write(fd_script[1], script, strlen(script));
         close(fd_script[1]);
 

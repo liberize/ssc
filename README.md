@@ -24,6 +24,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
   -s, --static             make static binary, more portable but bigger
   -r, --random-key         use random key for obfuscation
   -e, --embed-interpreter  embed specified interpreter into binary
+  -0, --fix-argv0          try to fix $0, may not work
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```
@@ -41,7 +42,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
 
 # Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_EXECUTABLE_PATH` instead.
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. Try `-0` flag or use `$SSC_ARGV0` instead.
 
 # Interpreter selection
 
