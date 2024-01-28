@@ -26,7 +26,7 @@ const char* obfuscated_string = AY_OBFUSCATE("Hello World");
 std::cout << obfuscated_string << std::endl;
 
 ----------------------------------------------------------------------------- */
-
+#pragma once
 #include <cstddef>
 
 namespace ay
@@ -188,3 +188,9 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ----------------------------------------------------------------------------- */
+
+#ifdef OBFUSCATE_KEY
+    #define OBF(x) (const char *) AY_OBFUSCATE_KEY(x, OBFUSCATE_KEY)
+#else
+    #define OBF(x) (const char *) AY_OBFUSCATE(x)
+#endif
