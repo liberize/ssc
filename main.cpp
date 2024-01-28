@@ -231,16 +231,15 @@ int main(int argc, char* argv[]) {
     } else if (p > 0) { // parent process
         close(fd_script[1]);
         
-        std::string scriptPath(file_name), binaryPath = get_exe_path();
-        setenv("SSC_SCRIPT_NAME", base_name(scriptPath).c_str(), 1);
-        setenv("SSC_BINARY_NAME", base_name(binaryPath).c_str(), 1);
+        std::string scriptName(file_name), exePath = get_exe_path();
+        setenv("SSC_EXE_PATH", exePath.c_str(), 1);
         
         // detect script format by file name suffix
         ScriptFormat format = SHELL;
         std::string shell("sh");
-        auto pos = scriptPath.find_last_of(".");
+        auto pos = scriptName.find_last_of(".");
         if (pos != std::string::npos) {
-            auto suffix = scriptPath.substr(pos + 1);
+            auto suffix = scriptName.substr(pos + 1);
             std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
                 return std::tolower(c);
             });
@@ -296,7 +295,7 @@ int main(int argc, char* argv[]) {
                 // support relative path
                 pos = args[0].find('/');
                 if (pos != std::string::npos && pos != 0) {
-                    args[0] = dir_name(binaryPath) + args[0];
+                    args[0] = dir_name(exePath) + args[0];
                 }
             }
         }

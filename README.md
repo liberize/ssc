@@ -41,7 +41,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
 
 # Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_SCRIPT_NAME` or `$SSC_BINARY_NAME` instead.
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_EXE_PATH` instead.
 
 # Interpreter selection
 
@@ -59,5 +59,5 @@ For example, to compile arm64 binary on x86_64 ubuntu
 
 ```bash
 apt install g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-CROSS_COMPILE=aarch64-linux-gnu- ./ssc script binary  # may add -s flag
+CROSS_COMPILE=aarch64-linux-gnu- ./ssc script binary
 ```
