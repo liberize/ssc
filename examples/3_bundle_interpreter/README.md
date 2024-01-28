@@ -29,8 +29,12 @@ tar -zcvf release.tar.gz binary bash-static
 `busybox` provides several Unix utilities in a single executable file. We can make a completely dependency-free app with it.
 
 ```bash
-# download busybox
-wget https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
+# download busybox-static
+wget https://ftp.debian.org/debian/pool/main/b/busybox/busybox-static_1.35.0-4+b3_amd64.deb
+ar x busybox-static_1.35.0-4+b3_amd64.deb data.tar.xz
+tar -xvf data.tar.xz ./bin/busybox
+mv ./bin/busybox ./
+rm -rf ./bin data.tar.xz busybox-static_1.35.0-4+b3_amd64.deb data.tar.xz
 
 # use -s flag to make our binary static too
 ssc ./test_busybox.sh binary -s
