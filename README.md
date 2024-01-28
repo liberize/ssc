@@ -19,7 +19,7 @@ Install g++ (5.2 or above), then
 More options
 
 ```
-Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
+Usage: ./ssc [-u] [-s] [-r] [-e interpreter] [-0] <script> <binary>
   -u, --untraceable        make untraceable binary
   -s, --static             make static binary, more portable but bigger
   -r, --random-key         use random key for obfuscation
