@@ -22,7 +22,8 @@ static int remove_file(const char *pathname, const struct stat *sbuf, int type, 
 
 inline std::string extract_interpreter() {
     auto dir = OBF("/tmp/ssc");
-    nftw(dir, remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
+    // delete the whole directory can cause troubles when multiple instances are running
+    //nftw(dir, remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
     mkdir(dir, 0755);
     char path[PATH_MAX];
     snprintf(path, sizeof(path), "%s/XXXXXX", dir);

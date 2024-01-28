@@ -6,6 +6,12 @@ Another benefit from embedding is enhanced source protection. Without embedding,
 
 To embed the interpreter, use `-e` flag.
 
+The interpreter is not deleted by default, you have to delete it in your script like this:
+
+```bash
+[ -n "$SSC_INTERPRETER_PATH" ] && rm -f "$SSC_INTERPRETER_PATH"
+```
+
 ## Example: bash-static
 
 `bash-static` is a static build of bash. It doesn't come with any dependencies, so it's easy to bundle it to our app.

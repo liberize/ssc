@@ -58,7 +58,8 @@ int main(int argc, char* argv[]) {
         close(fd_script[1]);
         
         std::string scriptName(file_name), exePath = get_exe_path();
-        setenv("SSC_EXE_PATH", exePath.c_str(), 1);
+        setenv("SSC_EXECUTABLE_PATH", exePath.c_str(), 1);
+        setenv("SSC_INTERPRETER_PATH", interpreterPath.c_str(), 1);
         
         // detect script format by file name suffix
         ScriptFormat format = SHELL;

@@ -41,7 +41,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e interpreter] <script> <binary>
 
 # Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_EXE_PATH` instead.
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. use `$SSC_EXECUTABLE_PATH` instead.
 
 # Interpreter selection
 
