@@ -34,25 +34,25 @@ inline void check_debugger() {
 #ifdef __linux__
     std::ifstream ifs(OBF("/proc/self/status"));
     std::string line, needle = OBF("TracerPid:\t");
-    int tracerPid = 0;
+    int tracer_pid = 0;
     while (std::getline(ifs, line)) {
         auto idx = line.find(needle);
         if (idx != std::string::npos) {
-            tracerPid = atoi(line.c_str() + idx + needle.size());
+            tracer_pid = atoi(line.c_str() + idx + needle.size());
             break;
         }
     }
     ifs.close();
-    if (tracerPid != 0) {
-        //fprintf(stderr, OBF("found tracer. tracerPid=%d\n"), tracerPid);
+    if (tracer_pid != 0) {
+        //fprintf(stderr, OBF("found tracer. tracer_pid=%d\n"), tracer_pid);
         _exit(1);
     }
     std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
-    int ptraceScope = 0;
-    ifs2 >> ptraceScope;
+    int ptrace_scope = 0;
+    ifs2 >> ptrace_scope;
     ifs2.close();
-    if (getuid() != 0 && ptraceScope != 0) {
-        //fprintf(stderr, OBF("skip ptrace detection. uid=%d ptraceScope=%d\n"), getuid(), ptraceScope);
+    if (getuid() != 0 && ptrace_scope != 0) {
+        //fprintf(stderr, OBF("skip ptrace detection. uid=%d ptrace_scope=%d\n"), getuid(), ptrace_scope);
         return;
     }
 #endif

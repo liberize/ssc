@@ -36,26 +36,26 @@ int main(int argc, char* argv[]) {
     check_debugger();
 #endif
 
-    std::string interpreterPath;
+    std::string interpreter_path;
 #ifdef EMBED_INTERPRETER_NAME
-    interpreterPath = extract_interpreter();
-    setenv("SSC_INTERPRETER_PATH", interpreterPath.c_str(), 1);
-    setenv("PATH", (dir_name(interpreterPath) + ':' + getenv("PATH")).c_str(), 1);
+    interpreter_path = extract_interpreter();
+    setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
+    setenv("PATH", (dir_name(interpreter_path) + ':' + getenv("PATH")).c_str(), 1);
 #endif
 
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
     const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
 
-    std::string scriptName(file_name), exePath = get_exe_path();
-    setenv("SSC_EXECUTABLE_PATH", exePath.c_str(), 1);
+    std::string script_name(file_name), exe_path = get_exe_path();
+    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
     setenv("SSC_ARGV0", argv[0], 1);
     
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
     std::string shell("sh");
-    auto pos = scriptName.find_last_of(".");
+    auto pos = script_name.find_last_of(".");
     if (pos != std::string::npos) {
-        auto suffix = scriptName.substr(pos + 1);
+        auto suffix = script_name.substr(pos + 1);
         std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
             return std::tolower(c);
         });
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
             // support relative path
             pos = args[0].find('/');
             if (pos != std::string::npos && pos != 0) {
-                args[0] = dir_name(exePath) + args[0];
+                args[0] = dir_name(exe_path) + args[0];
             }
         }
     }
@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
             cargs.push_back(arg.c_str());
         }
         cargs.push_back(NULL);
-        execvp(interpreterPath.empty() ? cargs[0] : interpreterPath.c_str(), (char* const*) cargs.data());
+        execvp(interpreter_path.empty() ? cargs[0] : interpreter_path.c_str(), (char* const*) cargs.data());
         // error in execvp
         perror(OBF("execvp failed"));
         return 3;
