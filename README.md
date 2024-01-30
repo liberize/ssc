@@ -52,15 +52,24 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 * `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. Try `-0` flag or use `$SSC_ARGV0` instead.
 
+# Builtin variables
+
+* `SSC_INTERPRETER_PATH`: actual interpreter path
+* `SSC_EXECUTABLE_PATH`: current executable path
+* `SSC_ARGV0`: first command line argument (i.e. $0)
+* `SSC_EXTRACT_DIR`: temporary extraction directory for embeded file, if -e or -E flag is used
+
 # Interpreter selection
 
-If the script has no shebang, it's format is deduced from file extension, and a default interpreter in PATH is used.
+If the script has no shebang, it's format will be deduced from file extension, and a default interpreter in PATH will be used.
 
 If the script has a shebang, the shebang will be used to launch an interpreter process.
 
-If the program in the shebang is a relative path, the interpreter of the path relative to the binary is used. 
+If the script has a relative-path shebang, the interpreter of the path relative to the binary will be used. 
 
-If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
+If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/XXXXXX/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
+
+If the binary is generated with `-E`, the archive is built into the binary. Upon execution, the archive will be decompressed and extracted to /tmp/ssc/XXXXXX/ with permissions perserved. If the script has a relative-path shebang, the interpreter of the path relative to the extraction directory will be used, otherwise, a system intepreter will be used.
 
 # Cross compiling
 
