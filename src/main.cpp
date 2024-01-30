@@ -18,7 +18,7 @@
 #ifdef UNTRACEABLE
 #include "untraceable.h"
 #endif
-#ifdef EMBED_INTERPRETER_NAME
+#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE)
 #include "embed.h"
 #endif
 
@@ -36,20 +36,22 @@ int main(int argc, char* argv[]) {
     check_debugger();
 #endif
 
-    std::string interpreter_path;
-#ifdef EMBED_INTERPRETER_NAME
-    interpreter_path = extract_interpreter();
-    setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
-    setenv("PATH", (dir_name(interpreter_path) + ':' + getenv("PATH")).c_str(), 1);
-#endif
-
     const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
     const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
 
-    std::string script_name(file_name), exe_path = get_exe_path();
-    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
-    setenv("SSC_ARGV0", argv[0], 1);
-    
+    std::string script_name(file_name);
+    std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
+    std::string interpreter_path, extract_dir;
+
+#if defined(EMBED_INTERPRETER_NAME)
+    interpreter_path = extract_embeded_file();
+    extract_dir = dir_name(interpreter_path);
+#elif defined(EMBED_ARCHIVE)
+    base_dir = extract_dir = extract_embeded_file();
+#endif
+    setenv("SSC_EXTRACT_DIR", extract_dir.c_str(), 1);
+    atexit(remove_extract_dir);
+
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
     std::string shell("sh");
@@ -111,11 +113,6 @@ int main(int argc, char* argv[]) {
             } else if (args[0].find("php") != std::string::npos) {
                 format = PHP;
             }
-            // support relative path
-            pos = args[0].find('/');
-            if (pos != std::string::npos && pos != 0) {
-                args[0] = dir_name(exe_path) + args[0];
-            }
         }
     }
     if (args.empty()) {
@@ -129,6 +126,19 @@ int main(int argc, char* argv[]) {
             default:         perror(OBF("unknown format")); return 4;
         }
     }
+    if (interpreter_path.empty()) {
+        // support relative path
+        pos = args[0].find('/');
+        if (pos != std::string::npos && pos != 0) {
+            interpreter_path = base_dir + args[0];
+        } else {
+            interpreter_path = args[0];
+        }
+    }
+
+    setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
+    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
+    setenv("SSC_ARGV0", argv[0], 1);
     
     int fd_script[2];
     if (pipe(fd_script) == -1) {
@@ -165,7 +175,7 @@ int main(int argc, char* argv[]) {
             cargs.push_back(arg.c_str());
         }
         cargs.push_back(NULL);
-        execvp(interpreter_path.empty() ? cargs[0] : interpreter_path.c_str(), (char* const*) cargs.data());
+        execvp(interpreter_path.c_str(), (char* const*) cargs.data());
         // error in execvp
         perror(OBF("execvp failed"));
         return 3;
@@ -198,6 +208,7 @@ int main(int argc, char* argv[]) {
         write(fd_script[1], script, strlen(script));
         close(fd_script[1]);
 
-        return 0;
+        // exit without calling atexit handlers
+        _Exit(0);
     }
 }

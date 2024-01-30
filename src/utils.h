@@ -2,6 +2,7 @@
 #include <string>
 #include <unistd.h>
 #include <limits.h>
+#include <ftw.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
@@ -39,4 +40,13 @@ inline std::string str_replace_all(std::string str, const std::string& from, con
         start_pos += to.length();
     }
     return str;
+}
+
+static int _remove_file(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
+    remove(pathname);
+    return 0;
+}
+
+inline void remove_directory(const char *dir) {
+    nftw(dir, _remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
 }

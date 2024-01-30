@@ -8,9 +8,13 @@ Upon execution, the compiled binary will replace current process with real scrip
 
 **This tool doesn't generate standalone binary. A script interpreter (systemwide, bundled or embeded) is neccessary for the binary to run.**
 
-# Usage
+# Prerequisite
 
-Install g++ (5.2 or above), then
+* g++ (5.2 or above)
+* perl (probably already installed)
+* libarchive-dev, acl-dev, libz-dev (only required by -E flag)
+
+# Usage
 
 ```bash
 ./ssc script binary
@@ -19,11 +23,15 @@ Install g++ (5.2 or above), then
 More options
 
 ```
-Usage: ./ssc [-u] [-s] [-r] [-e interpreter] [-0] <script> <binary>
+Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -u, --untraceable        make untraceable binary
-  -s, --static             make static binary, more portable but bigger
+  -s, --static             make static binary
+                           link statically, binary is more portable but bigger
   -r, --random-key         use random key for obfuscation
   -e, --embed-interpreter  embed specified interpreter into binary
+                           the interpreter will be used no matter what shebang is
+  -E, --embed-archive      embed specified archive into binary, require libarchive-dev
+                           set relative path in shebang to use interpreter in archive
   -0, --fix-argv0          try to fix $0, may not work
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
