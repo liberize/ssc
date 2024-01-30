@@ -30,7 +30,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -r, --random-key         use random key for obfuscation
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
-  -E, --embed-archive      embed specified archive into binary, require libarchive-dev
+  -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
                            set relative path in shebang to use interpreter in archive
   -0, --fix-argv0          try to fix $0, may not work
   -v, --verbose            show debug messages
