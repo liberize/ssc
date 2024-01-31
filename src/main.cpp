@@ -53,6 +53,8 @@ int main(int argc, char* argv[]) {
     atexit(remove_extract_dir);
 #endif
     setenv("SSC_EXTRACT_DIR", extract_dir.c_str(), 1);
+    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
+    setenv("SSC_ARGV0", argv[0], 1);
 
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
@@ -92,21 +94,31 @@ int main(int argc, char* argv[]) {
             line.assign(script + 2);
             shebang_end = script + strlen(script);
         }
+
         wordexp_t wrde;
         if (wordexp(line.c_str(), &wrde, 0) != 0) {
             perror(OBF("parse shebang failed"));
             return 1;
         }
         for (size_t i = 0; i < wrde.we_wordc; i++) {
-            args.emplace_back(wrde.we_wordv[i]);
+            auto s = wrde.we_wordv[i];
+            if (args.empty()) {
+                if (!strcmp(s, "env") || !strcmp(s, "/usr/bin/env")) {
+                    continue;
+                }
+                for (p = s; *p == '_' || isalnum(*p); ++p);
+                if (*p == '=') {
+                    std::string name(s, p - s);
+                    setenv(name.c_str(), ++p, 1);
+                    continue;
+                }
+            }
+            args.emplace_back(s);
         }
         wordfree(&wrde);
 
         // detect script format by shebang
         if (!args.empty()) {
-            if (args[0] == "/usr/bin/env" && args.size() > 1) {
-                args.erase(args.begin());
-            }
             if (str_ends_with(args[0], "sh")) {
                 format = SHELL;
                 shell = base_name(args[0]);
@@ -143,10 +155,7 @@ int main(int argc, char* argv[]) {
             interpreter_path = args[0];
         }
     }
-
     setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
-    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
-    setenv("SSC_ARGV0", argv[0], 1);
     
     int fd_script[2];
     if (pipe(fd_script) == -1) {

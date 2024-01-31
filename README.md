@@ -25,6 +25,7 @@ More options
 ```
 Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -u, --untraceable        make untraceable binary
+                           enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
                            link statically, binary is more portable but bigger
   -r, --random-key         use random key for obfuscation
@@ -33,6 +34,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
                            set relative path in shebang to use interpreter in archive
   -0, --fix-argv0          try to fix $0, may not work
+                           if it doesn't work or causes problems, use $SSC_ARGV0 instead
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```
@@ -40,8 +42,8 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 # Features
 
 * support Linux/macOS/Cygwin
-* **support shell/python/perl/nodejs/ruby/php** or other scripts with custom shebang
-* support relative path in shebang, so it's possible to call a bundled interpreter
+* **support shell/python/perl/nodejs/ruby/php** and other scripts with custom shebang
+* support relative path, environment variable and builtin variable expanding in shebang
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script (up to 8MB)
