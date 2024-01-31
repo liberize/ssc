@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <limits.h>
+#include <wordexp.h>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -46,11 +47,12 @@ int main(int argc, char* argv[]) {
 #if defined(EMBED_INTERPRETER_NAME)
     interpreter_path = extract_embeded_file();
     extract_dir = dir_name(interpreter_path);
+    atexit(remove_extract_dir);
 #elif defined(EMBED_ARCHIVE)
     base_dir = extract_dir = extract_embeded_file();
+    atexit(remove_extract_dir);
 #endif
     setenv("SSC_EXTRACT_DIR", extract_dir.c_str(), 1);
-    atexit(remove_extract_dir);
 
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
@@ -90,10 +92,16 @@ int main(int argc, char* argv[]) {
             line.assign(script + 2);
             shebang_end = script + strlen(script);
         }
-        std::istringstream iss(line);
-        //FIXME: handle quotes and spaces (maybe use wordexp?)
-        args.assign(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{});
-        
+        wordexp_t wrde;
+        if (wordexp(line.c_str(), &wrde, 0) != 0) {
+            perror(OBF("parse shebang failed"));
+            return 1;
+        }
+        for (size_t i = 0; i < wrde.we_wordc; i++) {
+            args.emplace_back(wrde.we_wordv[i]);
+        }
+        wordfree(&wrde);
+
         // detect script format by shebang
         if (!args.empty()) {
             if (args[0] == "/usr/bin/env" && args.size() > 1) {
