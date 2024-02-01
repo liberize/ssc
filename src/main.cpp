@@ -30,6 +30,8 @@ enum ScriptFormat {
     JAVASCRIPT,
     RUBY,
     PHP,
+    R,
+    LUA,
 };
 
 int main(int argc, char* argv[]) {
@@ -78,6 +80,10 @@ int main(int argc, char* argv[]) {
             format = RUBY;
         } else if (suffix == "php") {
             format = PHP;
+        } else if (suffix == "r") {
+            format = R;
+        } else if (suffix == "lua") {
+            format = LUA;
         }
     }
 
@@ -132,17 +138,23 @@ int main(int argc, char* argv[]) {
                 format = RUBY;
             } else if (args[0].find("php") != std::string::npos) {
                 format = PHP;
+            } else if (args[0].find("Rscript") != std::string::npos) {
+                format = R;
+            } else if (args[0].find("lua") != std::string::npos) {
+                format = LUA;
             }
         }
     }
     if (args.empty()) {
         switch (format) {
-            case SHELL:      args.emplace_back(shell); break; // default to 'sh'
-            case PYTHON:     args.emplace_back("python"); break; // default to 'python'
-            case PERL:       args.emplace_back("perl"); break; // default to 'perl'
-            case JAVASCRIPT: args.emplace_back("node"); break; // default to 'node'
-            case RUBY:       args.emplace_back("ruby"); break; // default to 'ruby'
-            case PHP:        args.emplace_back("php"); break; // default to 'php'
+            case SHELL:      args.emplace_back(shell); break;
+            case PYTHON:     args.emplace_back("python"); break;
+            case PERL:       args.emplace_back("perl"); break;
+            case JAVASCRIPT: args.emplace_back("node"); break;
+            case RUBY:       args.emplace_back("ruby"); break;
+            case PHP:        args.emplace_back("php"); break;
+            case R:          args.emplace_back("Rscript"); break;
+            case LUA:        args.emplace_back("lua"); break;
             default:         perror(OBF("unknown format")); return 4;
         }
     }

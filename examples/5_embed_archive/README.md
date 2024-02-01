@@ -1,6 +1,6 @@
 # Embed archive
 
-We can even embed an archive into our binary, and make a self-extracting denpendency-free executable.
+We can even embed an archive into our binary, and make a self-extracting dependency-free executable.
 
 To embed an archive, use `-E` flag. The archive may or may not contain an interpreter.
 

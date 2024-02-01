@@ -32,7 +32,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
   -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
-                           set relative path in shebang to use interpreter in archive
+                           set relative path in shebang to use an interpreter in the archive
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, use $SSC_ARGV0 instead
   -v, --verbose            show debug messages
@@ -42,7 +42,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 # Features
 
 * support Linux/macOS/Cygwin
-* **support shell/python/perl/nodejs/ruby/php** and other scripts with custom shebang
+* **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and builtin variable expanding in shebang
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
