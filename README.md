@@ -24,7 +24,7 @@ More options
 
 ```
 Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
-  -4, --rc4                encrypt script with rc4 instead of obfuscation
+  -4, --rc4                encrypt script with rc4 instead of compile time obfuscation
                            additionally, remove script size limit
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
@@ -46,9 +46,9 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 * support Linux/macOS/Cygwin
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and variable expanding in shebang
-* simple code protection with **compile time obfuscation**
+* simple code protection with **compile time obfuscation or rc4 encryption**
 * pipes script code to interpreter to **avoid command line exposure**
-* support large script, up to 8MB by default and unlimited with `-4` flag
+* support large script, up to 8MB with compile time obfuscation and unlimited with rc4 encryption
 * **anti-debugging** with simple ptrace detection
 * support embeding an interpreter or archive into output binary
 
@@ -77,7 +77,9 @@ If the binary is generated with `-E`, the archive is built into the binary. Upon
 
 # Cross compiling
 
-For example, to compile arm64 binary on x86_64 ubuntu
+Set `CROSS_COMPILE` variable just like using Makefile.
+
+For example, to compile arm64 binary on x86_64 ubuntu:
 
 ```bash
 apt install g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
