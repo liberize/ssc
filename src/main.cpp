@@ -37,12 +37,6 @@ enum ScriptFormat {
     LUA,
 };
 
-void save(const char *name, const char *data, int size) {
-    int fd_out = open(name, O_WRONLY | O_CREAT | O_TRUNC);
-    write(fd_out, data, size);
-    close(fd_out);
-}
-
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
     check_debugger();
