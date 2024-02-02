@@ -19,8 +19,11 @@
 #ifdef UNTRACEABLE
 #include "untraceable.h"
 #endif
-#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE)
+#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(RC4_KEY)
 #include "embed.h"
+#endif
+#ifdef RC4_KEY
+#include "rc4.h"
 #endif
 
 enum ScriptFormat {
@@ -34,15 +37,17 @@ enum ScriptFormat {
     LUA,
 };
 
+void save(const char *name, const char *data, int size) {
+    int fd_out = open(name, O_WRONLY | O_CREAT | O_TRUNC);
+    write(fd_out, data, size);
+    close(fd_out);
+}
+
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
     check_debugger();
 #endif
 
-    const char* file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
-    const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
-
-    std::string script_name(file_name);
     std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
     std::string interpreter_path, extract_dir;
 
@@ -57,6 +62,28 @@ int main(int argc, char* argv[]) {
     setenv("SSC_EXTRACT_DIR", extract_dir.c_str(), 1);
     setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
     setenv("SSC_ARGV0", argv[0], 1);
+
+    std::string script_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
+#ifdef RC4_KEY
+    const char* rc4_key = OBF(STR(RC4_KEY));
+#ifdef __APPLE__
+    auto buf = read_data_sect("s");
+    if (buf.empty())
+        _exit(1);
+    char* script_data =  buf.data();
+    int script_len = buf.size();
+#else
+    extern char _binary_s_start;
+    extern char _binary_s_end;
+    char* script_data = &_binary_s_start;
+    int script_len = &_binary_s_end - &_binary_s_start;
+#endif
+    rc4((u8*) script_data, script_len, (u8*) rc4_key, strlen(rc4_key));
+    const char* script = script_data;
+#else
+    const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
+    int script_len = strlen(script);
+#endif
 
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
@@ -98,7 +125,7 @@ int main(int argc, char* argv[]) {
             shebang_end = p + (p[0] == '\r' && p[1] == '\n' ? 2 : 1);
         } else {
             line.assign(script + 2);
-            shebang_end = script + strlen(script);
+            shebang_end = script + script_len;
         }
 
         wordexp_t wrde;
@@ -214,6 +241,7 @@ int main(int argc, char* argv[]) {
         close(fd_script[0]);
 
 #ifdef FIX_ARGV0
+        script_len -= shebang_end - script;
         script = shebang_end;
         if (format == SHELL) {
             if (shell == "bash") {
@@ -234,7 +262,7 @@ int main(int argc, char* argv[]) {
         }
 #endif
         // write script content to writing end of fd_in pipe, then close it
-        write(fd_script[1], script, strlen(script));
+        write(fd_script[1], script, script_len);
         close(fd_script[1]);
 
         // exit without calling atexit handlers

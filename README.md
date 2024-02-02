@@ -24,6 +24,8 @@ More options
 
 ```
 Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
+  -4, --rc4                encrypt script with rc4 instead of obfuscation
+                           additionally, remove script size limit
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
@@ -43,10 +45,10 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 * support Linux/macOS/Cygwin
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
-* support relative path, environment variable and builtin variable expanding in shebang
+* support relative path, environment variable and variable expanding in shebang
 * simple code protection with **compile time obfuscation**
 * pipes script code to interpreter to **avoid command line exposure**
-* support large script (up to 8MB)
+* support large script, up to 8MB by default and unlimited with `-4` flag
 * **anti-debugging** with simple ptrace detection
 * support embeding an interpreter or archive into output binary
 

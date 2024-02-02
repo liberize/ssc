@@ -11,38 +11,45 @@
 
 #ifdef __APPLE__
 #include <mach-o/getsect.h>
-#else
-extern char _binary___start;
-extern char _binary___end;
+
+inline std::vector<char> read_data_sect(const char *name) {
+    const struct section_64 *sect = getsectbyname("binary", name);
+    if (!sect) {
+        perror(OBF("find data section failed"));
+        return std::vector<char>();
+    }
+    std::vector<char> buf(sect->size, '\0');
+    int fd_exe = open(get_exe_path().c_str(), O_RDONLY);
+    if (fd_exe == -1) {
+        perror(OBF("open executable file failed"));
+        return std::vector<char>();
+    }
+    lseek(fd_exe, sect->offset, SEEK_SET);
+    if (read(fd_exe, buf.data(), sect->size) != sect->size) {
+        perror(OBF("read data section failed"));
+        return std::vector<char>();
+    }
+    close(fd_exe);
+    return buf;
+}
 #endif
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+
 inline std::string extract_embeded_file() {
 #ifdef __APPLE__
-    const struct section_64 *sect = getsectbyname("binary", "_");
-    if (!sect) {
-        perror(OBF("find data section failed"));
+    auto buf = read_data_sect("i");
+    if (buf.empty())
         _exit(1);
-    }
-    size_t size = sect->size;
-    std::vector<char> buf(size, '\0');
-    char *data = buf.data();
-    int fd_exe = open(get_exe_path().c_str(), O_RDONLY);
-    if (fd_exe == -1) {
-        perror(OBF("open executable file failed"));
-        _exit(1);
-    }
-    lseek(fd_exe, sect->offset, SEEK_SET);
-    if (read(fd_exe, data, size) != size) {
-        perror(OBF("read data section failed"));
-        _exit(1);
-    }
-    close(fd_exe);
+    char *data =  buf.data();
+    size_t size = buf.size();
 #else
-    char *data = &_binary___start;
-    size_t size = &_binary___end - &_binary___start;
+    extern char _binary_i_start;
+    extern char _binary_i_end;
+    char *data = &_binary_i_start;
+    size_t size = &_binary_i_end - &_binary_i_start;
 #endif
     
     auto dir = OBF("/tmp/ssc");

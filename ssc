@@ -2,9 +2,10 @@
 
 while [ -n "$1" ]; do
   case "$1" in
+    -4|--rc4)               USE_RC4=1;;
     -u|--untraceable)       CXXFLAGS="$CXXFLAGS -DUNTRACEABLE";;
     -s|--static)            CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
-    -r|--random-key)        CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
+    -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
     -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -larchive -lacl -lz"; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
@@ -18,11 +19,13 @@ done
 eval set -- $POSITIONAL_ARGS
 if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
     echo "Usage: $0 [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>"
+    echo "  -4, --rc4                encrypt script with rc4 instead of obfuscation"
+    echo "                           additionally, remove script size limit"
     echo "  -u, --untraceable        make untraceable binary"
     echo "                           enable debugger detection, abort program when debugger is found"
     echo "  -s, --static             make static binary"
     echo "                           link statically, binary is more portable but bigger"
-    echo "  -r, --random-key         use random key for obfuscation"
+    echo "  -r, --random-key         use random key for obfuscation and encryption"
     echo "  -e, --embed-interpreter  embed specified interpreter into binary"
     echo "                           the interpreter will be used no matter what shebang is"
     echo "  -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev"
@@ -48,31 +51,48 @@ case "$(uname -s)" in
     *)            echo "unsupported system"; exit 1;;
 esac
 
-# convert interpreter to object file
-if [ -n "$EMBED_FILE" ]; then
-  cp "$EMBED_FILE" _ || exit 1
+b2o() {
   if [ "$MACHINE" = Mac ]; then
     touch stub.cpp
     $CXX -o stub.o -c stub.cpp
-    $LD -r -o _.o -sectcreate binary _ _ stub.o || exit 1
+    $LD -r -o $1.o -sectcreate binary $1 $1 stub.o || return 1
     rm -f stub.cpp stub.o
   else
-    $LD -r -b binary -o _.o _ || exit 1
+    $LD -r -b binary -o $1.o $1 || return 1
   fi
-  LDFLAGS="$LDFLAGS _.o"
+  return 0
+}
+
+# convert interpreter to object file
+if [ -n "$EMBED_FILE" ]; then
+  cp "$EMBED_FILE" i || exit 1
+  b2o i || exit 1
+  LDFLAGS="$LDFLAGS i.o"
 fi
 
-# generate c++ source code with script code
-perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+if [ -n "$USE_RC4" ]; then
+  # convert script to object file
+  [ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc
+  CXXFLAGS="$CXXFLAGS -DRC4_KEY=$RC4_KEY"
+  [ -f ./rc4 ] || $CXX "$DIR/rc4.cpp" -o rc4 || exit 1
+  ./rc4 "$1" s $RC4_KEY || exit 1
+  b2o s || exit 1
+  LDFLAGS="$LDFLAGS s.o"
+  perl -pe "s|SCRIPT_FILE_NAME|$1|g" "$DIR/main.cpp" >"$1.cpp" || exit 1
+else
+  # increase template depth limit
+  if $CXX -v 2>&1 | grep clang >/dev/null 2>&1; then
+    CXXFLAGS="$CXXFLAGS -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
+  else
+    CXXFLAGS="$CXXFLAGS -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
+  fi
+  # generate c++ source code with script code
+  perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+fi
 
 # compile c++ source code to binary
-if $CXX -v 2>&1 | grep clang >/dev/null 2>&1; then
-  CXXFLAGS="$CXXFLAGS -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
-else
-  CXXFLAGS="$CXXFLAGS -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
-fi
 $CXX -I"$DIR" -std=$CXX_STANDARD $CXXFLAGS "$1.cpp" $LDFLAGS -o "$2" || exit 1
 $STRIP "$2"
 
 # cleanup
-rm -f "$1.cpp" _.o _
+rm -f "$1.cpp" i.o i s.o s
