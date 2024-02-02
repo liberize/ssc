@@ -23,20 +23,20 @@ Upon execution, the compiled binary will replace current process with real scrip
 More options
 
 ```
-Usage: ./ssc [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
+Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -4, --rc4                encrypt script with rc4 instead of obfuscation
                            additionally, remove script size limit
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
                            link statically, binary is more portable but bigger
-  -r, --random-key         use random key for obfuscation
+  -r, --random-key         use random key for obfuscation and encryption
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
   -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
                            set relative path in shebang to use an interpreter in the archive
-  -0, --fix-argv0          try to fix $0, may not work
-                           if it doesn't work or causes problems, use $SSC_ARGV0 instead
+  -0, --fix-argv0          try to fix \$0, may not work
+                           if it doesn't work or causes problems, use \$SSC_ARGV0 instead
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```

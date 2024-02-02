@@ -18,7 +18,7 @@ while [ -n "$1" ]; do
 done
 eval set -- $POSITIONAL_ARGS
 if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
-    echo "Usage: $0 [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>"
+    echo "Usage: $0 [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>"
     echo "  -4, --rc4                encrypt script with rc4 instead of obfuscation"
     echo "                           additionally, remove script size limit"
     echo "  -u, --untraceable        make untraceable binary"
