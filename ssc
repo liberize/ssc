@@ -74,7 +74,7 @@ if [ -n "$USE_RC4" ]; then
   # convert script to object file
   [ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc
   CXXFLAGS="$CXXFLAGS -DRC4_KEY=$RC4_KEY"
-  [ -f ./rc4 ] || $CXX "$DIR/rc4.cpp" -o rc4 || exit 1
+  [ -f ./rc4 ] || $CXX -std=$CXX_STANDARD "$DIR/rc4.cpp" -o rc4 || exit 1
   ./rc4 "$1" s $RC4_KEY || exit 1
   b2o s || exit 1
   LDFLAGS="$LDFLAGS s.o"

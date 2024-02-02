@@ -12,6 +12,7 @@
  * See README and COPYING for more details.
  */
 #pragma once
+#include "utils.h"
 
 typedef unsigned char u8;
 typedef unsigned int  u32;
@@ -29,7 +30,7 @@ typedef unsigned int  u32;
  * stream, and XOR the end result with the data buffer to perform RC4
  * encryption/decryption.
  */
-void rc4_skip(const u8 *key, size_t keylen, size_t skip,
+FORCE_INLINE void rc4_skip(const u8 *key, size_t keylen, size_t skip,
 	      u8 *data, size_t data_len)
 {
 	u32 i, j, k;
@@ -73,7 +74,7 @@ void rc4_skip(const u8 *key, size_t keylen, size_t skip,
  * Generate RC4 pseudo random stream for the given key and XOR this with the
  * data buffer to perform RC4 encryption/decryption.
  */
-void rc4(u8 *buf, size_t len, const u8 *key, size_t key_len)
+FORCE_INLINE void rc4(u8 *buf, size_t len, const u8 *key, size_t key_len)
 {
 	rc4_skip(key, key_len, 0, buf, len);
 }

@@ -1,10 +1,11 @@
 #pragma once
 #include "obfuscate.h"
+#include "utils.h"
 
 #if defined(__CYGWIN__)
 #include <Windows.h>
 
-inline void check_debugger() {
+FORCE_INLINE void check_debugger() {
     if (IsDebuggerPresent()) {
         //perror(OBF("debugger present!"));
         exit(1);
@@ -30,7 +31,7 @@ inline void check_debugger() {
     #endif
 #endif
 
-inline void check_debugger() {
+FORCE_INLINE void check_debugger() {
 #ifdef __linux__
     std::ifstream ifs(OBF("/proc/self/status"));
     std::string line, needle = OBF("TracerPid:\t");

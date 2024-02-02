@@ -8,14 +8,72 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "utils.h"
 
-static inline void	errmsg(const char *);
-static inline void	fail(const char *, const char *, int);
-static inline int	copy_data(struct archive *, struct archive *);
-static inline void	msg(const char *);
-static inline void	warn(const char *, const char *);
+/*
+ * These reporting functions use low-level I/O; on some systems, this
+ * is a significant code reduction.  Of course, on many server and
+ * desktop operating systems, malloc() and even crt rely on printf(),
+ * which in turn pulls in most of the rest of stdio, so this is not an
+ * optimization at all there.  (If you're going to pay 100k or more
+ * for printf() anyway, you may as well use it!)
+ */
+static FORCE_INLINE void
+msg(const char *m)
+{
+	write(1, m, strlen(m));
+}
 
-static inline void
+static FORCE_INLINE void
+errmsg(const char *m)
+{
+	write(2, m, strlen(m));
+}
+
+static FORCE_INLINE void
+warn(const char *f, const char *m)
+{
+	errmsg(f);
+	errmsg(" failed: ");
+	errmsg(m);
+	errmsg("\n");
+}
+
+static FORCE_INLINE void
+fail(const char *f, const char *m, int r)
+{
+	warn(f, m);
+	exit(r);
+}
+
+static FORCE_INLINE int
+copy_data(struct archive *ar, struct archive *aw)
+{
+	int r;
+	const void *buff;
+	size_t size;
+#if ARCHIVE_VERSION_NUMBER >= 3000000
+	int64_t offset;
+#else
+	off_t offset;
+#endif
+
+	for (;;) {
+		r = archive_read_data_block(ar, &buff, &size, &offset);
+		if (r == ARCHIVE_EOF)
+			return (ARCHIVE_OK);
+		if (r != ARCHIVE_OK)
+			return (r);
+		r = archive_write_data_block(aw, buff, size, offset);
+		if (r != ARCHIVE_OK) {
+			warn("archive_write_data_block()",
+			    archive_error_string(aw));
+			return (r);
+		}
+	}
+}
+
+static FORCE_INLINE void
 extract_from_mem(const void *data, size_t size, int do_extract = 1, int verbose = 0,
                  int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS)
 {
@@ -81,67 +139,4 @@ extract_from_mem(const void *data, size_t size, int do_extract = 1, int verbose 
 	
 	archive_write_close(ext);
   	archive_write_free(ext);
-}
-
-static inline int
-copy_data(struct archive *ar, struct archive *aw)
-{
-	int r;
-	const void *buff;
-	size_t size;
-#if ARCHIVE_VERSION_NUMBER >= 3000000
-	int64_t offset;
-#else
-	off_t offset;
-#endif
-
-	for (;;) {
-		r = archive_read_data_block(ar, &buff, &size, &offset);
-		if (r == ARCHIVE_EOF)
-			return (ARCHIVE_OK);
-		if (r != ARCHIVE_OK)
-			return (r);
-		r = archive_write_data_block(aw, buff, size, offset);
-		if (r != ARCHIVE_OK) {
-			warn("archive_write_data_block()",
-			    archive_error_string(aw));
-			return (r);
-		}
-	}
-}
-
-/*
- * These reporting functions use low-level I/O; on some systems, this
- * is a significant code reduction.  Of course, on many server and
- * desktop operating systems, malloc() and even crt rely on printf(),
- * which in turn pulls in most of the rest of stdio, so this is not an
- * optimization at all there.  (If you're going to pay 100k or more
- * for printf() anyway, you may as well use it!)
- */
-static inline void
-msg(const char *m)
-{
-	write(1, m, strlen(m));
-}
-
-static inline void
-errmsg(const char *m)
-{
-	write(2, m, strlen(m));
-}
-
-static inline void
-warn(const char *f, const char *m)
-{
-	errmsg(f);
-	errmsg(" failed: ");
-	errmsg(m);
-	errmsg("\n");
-}
-
-static inline void
-fail(const char *f, const char *m, int r)
-{
-	warn(f, m);
-	exit(r);
 }

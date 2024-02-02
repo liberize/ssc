@@ -8,7 +8,9 @@
 #endif
 #include "obfuscate.h"
 
-inline std::string get_exe_path() {
+#define FORCE_INLINE __attribute__((always_inline)) inline
+
+FORCE_INLINE std::string get_exe_path() {
     char buf[PATH_MAX] = {0};
     int size = sizeof(buf);
 #if defined(__linux__) || defined(__CYGWIN__)
@@ -21,19 +23,19 @@ inline std::string get_exe_path() {
 #endif
 }
 
-inline std::string dir_name(const std::string& s) {
+FORCE_INLINE std::string dir_name(const std::string& s) {
     return s.substr(0, s.find_last_of("\\/") + 1);
 }
 
-inline std::string base_name(const std::string& s) {
+FORCE_INLINE std::string base_name(const std::string& s) {
     return s.substr(s.find_last_of("\\/") + 1);
 }
 
-inline bool str_ends_with(const std::string& s, const std::string& e) {
+FORCE_INLINE bool str_ends_with(const std::string& s, const std::string& e) {
     return s.size() >= e.size() && s.compare(s.size() - e.size(), e.size(), e) == 0;
 }
 
-inline std::string str_replace_all(std::string str, const std::string& from, const std::string& to) {
+FORCE_INLINE std::string str_replace_all(std::string str, const std::string& from, const std::string& to) {
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
         str.replace(start_pos, from.length(), to);
@@ -47,6 +49,6 @@ static int _remove_file(const char *pathname, const struct stat *sbuf, int type,
     return 0;
 }
 
-inline void remove_directory(const char *dir) {
+FORCE_INLINE void remove_directory(const char *dir) {
     nftw(dir, _remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
 }

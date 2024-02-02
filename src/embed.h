@@ -12,7 +12,7 @@
 #ifdef __APPLE__
 #include <mach-o/getsect.h>
 
-inline std::vector<char> read_data_sect(const char *name) {
+FORCE_INLINE std::vector<char> read_data_sect(const char *name) {
     const struct section_64 *sect = getsectbyname("binary", name);
     if (!sect) {
         perror(OBF("find data section failed"));
@@ -38,7 +38,7 @@ inline std::vector<char> read_data_sect(const char *name) {
 #define STR(x) STR_HELPER(x)
 
 
-inline std::string extract_embeded_file() {
+FORCE_INLINE std::string extract_embeded_file() {
 #ifdef __APPLE__
     auto buf = read_data_sect("i");
     if (buf.empty())
@@ -99,7 +99,7 @@ inline std::string extract_embeded_file() {
     return path;
 }
 
-void remove_extract_dir() {
+static void remove_extract_dir() {
     auto extract_dir = getenv("SSC_EXTRACT_DIR");
     if (extract_dir && !strncmp(extract_dir, "/tmp/", 5)) {
         //fprintf(stderr, "remove %s\n", extract_dir);
