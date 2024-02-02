@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 #ifdef __APPLE__
     auto buf = read_data_sect("s");
     if (buf.empty())
-        _exit(1);
+        exit(1);
     char* script_data =  buf.data();
     int script_len = buf.size();
 #else

@@ -7,7 +7,7 @@
 inline void check_debugger() {
     if (IsDebuggerPresent()) {
         //perror(OBF("debugger present!"));
-        _exit(1);
+        exit(1);
     }
 }
 
@@ -45,7 +45,7 @@ inline void check_debugger() {
     ifs.close();
     if (tracer_pid != 0) {
         //fprintf(stderr, OBF("found tracer. tracer_pid=%d\n"), tracer_pid);
-        _exit(1);
+        exit(1);
     }
     std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
     int ptrace_scope = 0;
@@ -60,7 +60,7 @@ inline void check_debugger() {
     int p = fork();
     if (p < 0) {
         perror(OBF("fork failed"));
-        _exit(1);
+        exit(1);
     } else if (p > 0) { // parent process
         waitpid(p, 0, 0);
     } else {
@@ -71,7 +71,7 @@ inline void check_debugger() {
             //perror(OBF("being traced!"));
             kill(ppid, SIGKILL);
         }
-        _exit(0);
+        exit(0);
     }
 }
 #endif

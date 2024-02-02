@@ -42,7 +42,7 @@ inline std::string extract_embeded_file() {
 #ifdef __APPLE__
     auto buf = read_data_sect("i");
     if (buf.empty())
-        _exit(1);
+        exit(1);
     char *data =  buf.data();
     size_t size = buf.size();
 #else
@@ -60,7 +60,7 @@ inline std::string extract_embeded_file() {
     snprintf(path, sizeof(path), "%s/XXXXXX", dir);
     if (!mkdtemp(path)) {
         perror(OBF("create output directory failed"));
-        _exit(1);
+        exit(1);
     }
     strcat(path, "/");
 
@@ -69,31 +69,31 @@ inline std::string extract_embeded_file() {
     int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd == -1) {
         perror(OBF("open output file failed"));
-        _exit(1);
+        exit(1);
     }
     if (write(fd, data, size) != size) {
         perror(OBF("write output file failed"));
-        _exit(1);
+        exit(1);
     }
     close(fd);
     if (chmod(path, 0755) == -1) {
         perror(OBF("chmod 755 failed"));
-        _exit(1);
+        exit(1);
     }
 #elif defined(EMBED_ARCHIVE)
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
         perror(OBF("get current dir failed"));
-        _exit(1);
+        exit(1);
     }
     if (chdir(path) == -1) {
         perror(OBF("change dir failed"));
-        _exit(1);
+        exit(1);
     }
     extract_from_mem(data, size);
     if (chdir(cwd) == -1) {
         perror(OBF("change back dir failed"));
-        _exit(1);
+        exit(1);
     }
 #endif
     return path;
