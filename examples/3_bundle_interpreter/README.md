@@ -17,7 +17,7 @@ mv ./bin/bash-static ./
 rm -rf ./bin data.tar.xz bash-static_5.2.15-2+b2_amd64.deb
 
 # use -s flag to make our binary static too
-ssc ./test_bash_static.sh binary -s
+../../ssc ./test_bash_static.sh binary -s
 
 # create tarball (or AppImage if you like)
 chmod +x binary bash-static
@@ -37,7 +37,7 @@ mv ./bin/busybox ./
 rm -rf ./bin data.tar.xz busybox-static_1.35.0-4+b3_amd64.deb data.tar.xz
 
 # use -s flag to make our binary static too
-ssc ./test_busybox.sh binary -s
+../../ssc ./test_busybox.sh binary -s
 
 # create tarball (or AppImage if you like)
 chmod +x binary busybox

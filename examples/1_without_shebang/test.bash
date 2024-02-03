@@ -3,4 +3,5 @@
 
 echo "\$@ is $@"
 echo "command line: $0 $*"
+echo "\$BASH is $BASH"
 echo "hello world"
