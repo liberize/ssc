@@ -58,6 +58,8 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 # Builtin variables
 
+The following builtin variables are available to the script (including shebang):
+
 * `SSC_INTERPRETER_PATH`: actual interpreter path
 * `SSC_EXECUTABLE_PATH`: current executable path
 * `SSC_ARGV0`: first command line argument (i.e. $0)
