@@ -52,7 +52,7 @@ case "$(uname -s)" in
 esac
 
 if [ -x "$(command -v termux-info)" ]; then
-        if [[ $(pkg list-installed 2>/dev/null) == *libandroid-wordexp* ]]; then
+        if [[ ! $(pkg list-installed 2>/dev/null) == *libandroid-wordexp* ]]; then
                 echo "Please install libandroid-wordexp" && exit 1
         else
                 LDFLAGS="-landroid-wordexp"
