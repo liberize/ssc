@@ -13,12 +13,16 @@ Upon execution, the compiled binary will replace current process with real scrip
 * g++ (5.2 or above)
 * perl (probably already installed)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
+* libandroid-wordexp (If you're using Termux)
 
 # Usage
 
 ```bash
 ./ssc script binary
 ```
+
+> [!IMPORTANT]
+> If you're using Android (with Termux), We recommend you to run it via bash instead of treating it as an executable because of system hiearchy problem.
 
 More options
 
@@ -43,7 +47,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 # Features
 
-* support Linux/macOS/Cygwin
+* support Linux/Android/macOS/Cygwin
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and variable expanding in shebang
 * code protection with **compile time obfuscation or rc4 encryption**
