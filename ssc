@@ -51,6 +51,8 @@ case "$(uname -s)" in
     *)            echo "unsupported system"; exit 1;;
 esac
 
+[ -x "$(command -v termux-info)" ] && LDFLAGS="$LDFLAGS -landroid-wordexp"
+
 b2o() {
   if [ "$MACHINE" = Mac ]; then
     touch stub.cpp

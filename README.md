@@ -13,6 +13,7 @@ Upon execution, the compiled binary will replace current process with real scrip
 * g++ (5.2 or above)
 * perl (probably already installed)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
+* libandroid-wordexp (if you're using android termux)
 
 # Usage
 
