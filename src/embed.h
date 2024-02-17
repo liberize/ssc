@@ -34,10 +34,6 @@ FORCE_INLINE std::vector<char> read_data_sect(const char *name) {
 }
 #endif
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
-
 FORCE_INLINE std::string extract_embeded_file() {
 #ifdef __APPLE__
     auto buf = read_data_sect("i");

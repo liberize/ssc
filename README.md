@@ -32,6 +32,8 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -s, --static             make static binary
                            link statically, binary is more portable but bigger
   -r, --random-key         use random key for obfuscation and encryption
+  -i, --interpreter        override interpreter path
+                           the interpreter will be used no matter what shebang is
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
   -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
@@ -73,6 +75,8 @@ If the script has no shebang, it's format will be deduced from file extension, a
 If the script has a shebang, the shebang will be used to launch an interpreter process.
 
 If the script has a relative-path shebang, the interpreter of the path relative to the binary will be used. 
+
+If the binary is generated with `-i`, the interpreter path specified after `-i` will be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
 
 If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/XXXXXX/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
 

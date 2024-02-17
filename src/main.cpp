@@ -45,6 +45,9 @@ int main(int argc, char* argv[]) {
     std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
     std::string interpreter_path, extract_dir;
 
+#if defined(INTERPRETER)
+    interpreter_path = OBF(STR(INTERPRETER));
+#endif
 #if defined(EMBED_INTERPRETER_NAME)
     interpreter_path = extract_embeded_file();
     extract_dir = dir_name(interpreter_path);

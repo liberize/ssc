@@ -8,6 +8,9 @@
 #endif
 #include "obfuscate.h"
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
 FORCE_INLINE std::string get_exe_path() {
