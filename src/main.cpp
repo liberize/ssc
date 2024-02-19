@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <limits.h>
@@ -206,17 +207,25 @@ int main(int argc, char* argv[]) {
     } else if (p > 0) { // parent process
         close(fd_script[1]);
         
+        std::string fd_path = OBF("/proc/self/fd");
+        struct stat st;
+        if (stat(OBF("/dev/fd"), &st) == 0 && S_ISDIR(st.st_mode)) {
+            fd_path = OBF("/dev/fd");
+        }
+        fd_path += '/';
+        fd_path += std::to_string(fd_script[0]);
+
         if (format == JAVASCRIPT) {
             args.emplace_back("--preserve-symlinks-main");
         }
 #ifdef FIX_ARGV0
         if (format == SHELL) {
             args.emplace_back("-c");
-            args.emplace_back(OBF(". /dev/fd/") + std::to_string(fd_script[0]));
+            args.emplace_back(". " + fd_path);
             args.emplace_back(argv[0]);
         } else
 #endif
-        args.emplace_back(OBF("/dev/fd/") + std::to_string(fd_script[0]));
+        args.emplace_back(fd_path);
 
         for (auto i = 1; i < argc; i++) {
             args.emplace_back(argv[i]);
@@ -254,8 +263,7 @@ int main(int argc, char* argv[]) {
         } else if (format == PERL) {
             dprintf(fd_script[1], "$0 = '%s';\n", str_replace_all(argv[0], "'", "\\'").c_str());
         } else if (format == JAVASCRIPT) {
-            dprintf(fd_script[1], " __filename = `%s`; for (var i = 0; i < process.argv.length; i++) { if (process.argv[i].startsWith('/dev/fd/')) { process.argv[i] = `%s`; break; } }\n",
-                    argv[0], argv[0]);
+            dprintf(fd_script[1], " __filename = `%s`; process.argv[1] = `%s`;\n", argv[0], argv[0]);
         }
 #endif
         // write script content to writing end of fd_in pipe, then close it
