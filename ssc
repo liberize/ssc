@@ -72,7 +72,7 @@ b2o() {
 if [ -n "$EMBED_FILE" ]; then
   cp "$EMBED_FILE" i || exit 1
   b2o i || exit 1
-  LDFLAGS="$LDFLAGS i.o"
+  LDFLAGS="$LDFLAGS -Wl,-z,noexecstack i.o"
 fi
 
 if [ -n "$USE_RC4" ]; then
@@ -82,7 +82,7 @@ if [ -n "$USE_RC4" ]; then
   [ -f ./rc4 ] || g++ -std=$CXX_STANDARD "$DIR/rc4.cpp" -o rc4 || exit 1
   ./rc4 "$1" s $RC4_KEY || exit 1
   b2o s || exit 1
-  LDFLAGS="$LDFLAGS s.o"
+  LDFLAGS="$LDFLAGS -Wl,-z,noexecstack s.o"
   perl -pe "s|SCRIPT_FILE_NAME|$1|g" "$DIR/main.cpp" >"$1.cpp" || exit 1
 else
   # increase template depth limit
