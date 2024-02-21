@@ -25,12 +25,11 @@ More options
 
 ```
 Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
-  -4, --rc4                encrypt script with rc4 instead of compile time obfuscation
-                           additionally, remove script size limit
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
                            link statically, binary is more portable but bigger
+  -4, --rc4                encrypt script with rc4 instead of compile time obfuscation
   -r, --random-key         use random key for obfuscation and encryption
   -i, --interpreter        override interpreter path
                            the interpreter will be used no matter what shebang is
