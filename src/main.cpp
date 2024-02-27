@@ -16,6 +16,9 @@
 #include <algorithm>
 #include "obfuscate.h"
 #include "utils.h"
+#ifdef __linux__
+#include <sys/mount.h>
+#endif
 
 #ifdef UNTRACEABLE
 #include "untraceable.h"
@@ -210,6 +213,12 @@ int main(int argc, char* argv[]) {
         
         std::string fd_path = OBF("/proc/self/fd");
         struct stat st;
+#ifdef __linux__
+        if ((stat(fd_path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) && getuid() == 0) {
+            mkdir("/proc", 0755);
+            mount("none", "/proc", "proc", 0, nullptr);
+        }
+#endif
         if (stat(OBF("/dev/fd"), &st) == 0 && S_ISDIR(st.st_mode)) {
             fd_path = OBF("/dev/fd");
         }
