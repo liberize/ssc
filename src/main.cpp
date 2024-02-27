@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
         perror(OBF("fork failed"));
         return 1;
     } else if (p > 0) { // parent process
-        sigignore(SIGCHLD);
+        signal(SIGCHLD, SIG_IGN);
         close(fd_script[1]);
         
         std::string fd_path = OBF("/proc/self/fd");
