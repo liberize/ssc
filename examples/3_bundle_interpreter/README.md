@@ -1,8 +1,8 @@
-# Bundle interpreter
+# Call a bundled interpreter
 
 Feel free to bundle the interpreter and all it's dependencies along with your binary.
 
-To use the bundled interpreter, use a shebang with relative path.
+To call the bundled interpreter, use a shebang with relative path.
 
 ## Example: bash-static
 

@@ -1,4 +1,4 @@
-# Embed archive
+# Embed an archive into the binary
 
 We can even embed an archive into our binary, and make a self-extracting dependency-free executable.
 

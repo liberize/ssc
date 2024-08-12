@@ -61,8 +61,8 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 1. [Script without a shebang.](https://github.com/liberize/ssc/tree/master/examples/1_without_shebang)
 2. [Script with a shebang.](https://github.com/liberize/ssc/tree/master/examples/2_with_shebang)
 3. [Call a bundled interpreter.](https://github.com/liberize/ssc/tree/master/examples/3_bundle_interpreter)
-4. [Embed an interpreter into binary.](https://github.com/liberize/ssc/tree/master/examples/4_embed_interpreter)
-5. [Embed an archive into binary.](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
+4. [Embed an interpreter into the binary.](https://github.com/liberize/ssc/tree/master/examples/4_embed_interpreter)
+5. [Embed an archive into the binary.](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
 
 # Builtin variables
 

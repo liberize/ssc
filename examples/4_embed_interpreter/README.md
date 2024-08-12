@@ -1,4 +1,4 @@
-# Embed interpreter
+# Embed an interpreter into the binary
 
 We can even embed the interpreter into our binary, and make a single-file denpendency-free executable.
 

@@ -1,4 +1,4 @@
-# Compile a script without shebang
+# Compile a script without a shebang
 
 The script must have a supported file extension.
 
