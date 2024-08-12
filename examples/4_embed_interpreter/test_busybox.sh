@@ -3,7 +3,6 @@
 # both works
 
 # remove extract dir /tmp/ssc/XXXXXX, this will delete all extracted files
-# in this case, it's ok to remove it at the beginning of the script to avoid exposure of the interpreter
 rm -rf "$SSC_EXTRACT_DIR"
 
 echo "\$@ is $@"

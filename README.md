@@ -2,9 +2,9 @@
 
 This is a simple tool to turn script to binary, inspired by shc.
 
-ssc itself is not a compiler such as cc, it rather generates c++ source code with script code, then uses c++ compiler to compile a binary which behaves exactly like the original script.
+ssc itself is not a compiler such as cc, it rather generates c++ source code with script code, then uses c++ compiler to compile the source into a binary which behaves exactly like the original script.
 
-Upon execution, the compiled binary will call real script interpreter (systemwide, bundled or embeded), and fork a child process to pipe script code to the interpreter to execute.
+Upon execution, the binary will call real script interpreter (systemwide, bundled or embeded), and fork a child process to pipe script code to the interpreter to execute.
 
 # Prerequisite
 
