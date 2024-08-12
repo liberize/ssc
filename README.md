@@ -9,7 +9,7 @@ Upon execution, the compiled binary will call real script interpreter (systemwid
 # Prerequisite
 
 * g++ (5.2 or above)
-* perl (probably already installed)
+* perl, binutils (probably already installed)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
 * libandroid-wordexp (if you're using android termux)
 
