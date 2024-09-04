@@ -287,6 +287,9 @@ int main(int argc, char* argv[]) {
             dprintf(fd_script[1], " __filename = `%s`; process.argv[1] = `%s`;\n", argv[0], argv[0]);
         }
 #endif
+#ifdef UNTRACEABLE
+        check_debugger();
+#endif
         // write script content to writing end of fd_in pipe, then close it
         write(fd_script[1], script, script_len);
         close(fd_script[1]);
