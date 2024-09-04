@@ -46,6 +46,18 @@ int main(int argc, char* argv[]) {
     check_debugger();
 #endif
 
+#ifdef EXPIRE_DATE
+    struct tm expire_tm;
+    if (!strptime(OBF(STR(EXPIRE_DATE)), "%m/%d/%Y", &expire_tm)) {
+        errln(OBF("invalid expire date!"));
+        return 1;
+    }
+    if (difftime(time(nullptr), mktime(&expire_tm)) >= 0) {
+        errln(OBF(R"SSC(script has expired!)SSC"));
+        return 1;
+    }
+#endif
+
     std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
     std::string interpreter_path, extract_dir;
 
@@ -131,7 +143,7 @@ int main(int argc, char* argv[]) {
 
         wordexp_t wrde;
         if (wordexp(line.c_str(), &wrde, 0) != 0) {
-            perror(OBF("parse shebang failed"));
+            errln(OBF("failed to parse shebang!"));
             return 1;
         }
         for (size_t i = 0; i < wrde.we_wordc; i++) {
@@ -183,7 +195,7 @@ int main(int argc, char* argv[]) {
             case PHP:        args.emplace_back("php"); break;
             case R:          args.emplace_back("Rscript"); break;
             case LUA:        args.emplace_back("lua"); break;
-            default:         perror(OBF("unknown format")); return 4;
+            default:         errln(OBF("unknown format!")); return 4;
         }
     }
     if (interpreter_path.empty()) {
@@ -199,13 +211,13 @@ int main(int argc, char* argv[]) {
     
     int fd_script[2];
     if (pipe(fd_script) == -1) {
-        perror(OBF("create pipe failed"));
+        perror(OBF("failed to create pipe!"));
         return 2;
     }
 
     int p = fork();
     if (p < 0) {
-        perror(OBF("fork failed"));
+        perror(OBF("failed to fork child process!"));
         return 1;
     } else if (p > 0) { // parent process
         close(fd_script[1]);
@@ -248,7 +260,7 @@ int main(int argc, char* argv[]) {
         cargs.push_back(NULL);
         execvp(interpreter_path.c_str(), (char* const*) cargs.data());
         // error in execvp
-        perror(OBF("execvp failed"));
+        perror(OBF("failed to exec interpreter!"));
         return 3;
 
     } else { // child process

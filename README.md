@@ -37,6 +37,9 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
                            set relative path in shebang to use an interpreter in the archive
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, use $SSC_ARGV0 instead
+  -d, --expire-date        expire date, for example, 11/2/2023
+  -m, --expire-message     expire message, default to 'script has expired!'
+                           if it's a valid file path, read message from the file
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```

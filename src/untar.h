@@ -10,26 +10,6 @@
 #include <unistd.h>
 #include "utils.h"
 
-/*
- * These reporting functions use low-level I/O; on some systems, this
- * is a significant code reduction.  Of course, on many server and
- * desktop operating systems, malloc() and even crt rely on printf(),
- * which in turn pulls in most of the rest of stdio, so this is not an
- * optimization at all there.  (If you're going to pay 100k or more
- * for printf() anyway, you may as well use it!)
- */
-static FORCE_INLINE void
-msg(const char *m)
-{
-	write(1, m, strlen(m));
-}
-
-static FORCE_INLINE void
-errmsg(const char *m)
-{
-	write(2, m, strlen(m));
-}
-
 static FORCE_INLINE void
 warn(const char *f, const char *m)
 {

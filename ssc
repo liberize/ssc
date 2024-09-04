@@ -10,6 +10,8 @@ while [ -n "$1" ]; do
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
     -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -larchive -lacl -lz"; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
+    -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
+    -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
     -v|--verbose)           set -x; CXXFLAGS="$CXXFLAGS -v";;
     -h|--help)              SHOW_USAGE=1;;
     -*|--*)                 echo "Unknown option $1"; exit 1;;
@@ -34,6 +36,9 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
   echo "                           set relative path in shebang to use an interpreter in the archive"
   echo "  -0, --fix-argv0          try to fix \$0, may not work"
   echo "                           if it doesn't work or causes problems, use \$SSC_ARGV0 instead"
+  echo "  -d, --expire-date        expire date, for example, 11/2/2023"
+  echo "  -m, --expire-message     expire message, default to 'script has expired!'"
+  echo "                           if it's a valid file path, read message from the file"
   echo "  -v, --verbose            show debug messages"
   echo "  -h, --help               display this help and exit"
   exit 0
@@ -92,6 +97,14 @@ else
   fi
   # generate c++ source code with script code
   perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+fi
+
+if [ -n "$EXPIRE_MESSAGE" ]; then
+  if [ -f "$EXPIRE_MESSAGE" ]; then
+    perl -pe "s|script has expired!|\`cat '$EXPIRE_MESSAGE'\`|ge" -i "$1.cpp" || exit 1
+  else
+    perl -pe "s|script has expired!|$EXPIRE_MESSAGE|g" -i "$1.cpp" || exit 1
+  fi
 fi
 
 # compile c++ source code to binary
