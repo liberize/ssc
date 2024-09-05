@@ -91,9 +91,11 @@ if [ -n "$USE_RC4" ]; then
 else
   # increase template depth limit
   if $CXX -v 2>&1 | grep clang >/dev/null 2>&1; then
-    CXXFLAGS="$CXXFLAGS -fconstexpr-depth=1073741824 -fconstexpr-steps=1073741824"
+    $CXX -fconstexpr-depth=1073741824 2>&1 | grep 'unknown argument' >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-depth=1073741824"
+    $CXX -fconstexpr-steps=1073741824 2>&1 | grep 'unknown argument' >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-steps=1073741824"
   else
-    CXXFLAGS="$CXXFLAGS -fconstexpr-loop-limit=1073741824 -fconstexpr-ops-limit=1073741824"
+	$CXX -fconstexpr-loop-limit=1073741824 2>&1 | grep unrecognized >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-loop-limit=1073741824"
+	$CXX -fconstexpr-ops-limit=1073741824  2>&1 | grep unrecognized >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-ops-limit=1073741824"
   fi
   # generate c++ source code with script code
   perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
