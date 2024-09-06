@@ -10,8 +10,18 @@ Upon execution, the binary will call real script interpreter (systemwide, bundle
 
 * g++ (5.2 or above)
 * perl, binutils (probably already installed)
+
+For debian-based systems:
+* libc-dev, libstdc++-dev (only required by -s flag)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
-* libandroid-wordexp (if you're using android termux)
+
+For redhat-based systems:
+* glibc-static, libstdc++-static (only required by -s flag)
+* libarchive-devel, libacl-devel, zlib-devel (only required by -E flag)
+
+For android termux:
+* libandroid-wordexp
+* libandroid-wordexp-static, ndk-multilib-native-static (only required by -s flag)
 
 # Usage
 
