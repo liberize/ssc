@@ -4,7 +4,7 @@ while [ -n "$1" ]; do
   case "$1" in
     -4|--rc4)               USE_RC4=1;;
     -u|--untraceable)       CXXFLAGS="$CXXFLAGS -DUNTRACEABLE";;
-    -s|--static)            STATIC=1;; CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
+    -s|--static)            STATIC=1; CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
     -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
     -i|--interpreter)       CXXFLAGS="$CXXFLAGS -DINTERPRETER=$2"; shift;;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
