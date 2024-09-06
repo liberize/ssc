@@ -4,7 +4,7 @@ while [ -n "$1" ]; do
   case "$1" in
     -4|--rc4)               USE_RC4=1;;
     -u|--untraceable)       CXXFLAGS="$CXXFLAGS -DUNTRACEABLE";;
-    -s|--static)            CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
+    -s|--static)            STATIC=1;; CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
     -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
     -i|--interpreter)       CXXFLAGS="$CXXFLAGS -DINTERPRETER=$2"; shift;;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
@@ -58,7 +58,13 @@ case "$(uname -s)" in
   *)            echo "unsupported system"; exit 1;;
 esac
 
-[ -x "$(command -v termux-info)" ] && LDFLAGS="$LDFLAGS -landroid-wordexp"
+if [ -x "$(command -v termux-info)" ]; then
+  LDFLAGS="$LDFLAGS -landroid-wordexp"
+  if [ "$STATIC" = 1 ]; then
+    CXXFLAGS="$CXXFLAGS -ffunction-sections -fdata-sections"
+    LDFLAGS="$LDFLAGS -Wl,--gc-sections"
+  fi
+fi
 
 b2o() {
   if [ "$MACHINE" = Mac ]; then
