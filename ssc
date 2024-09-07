@@ -120,4 +120,4 @@ $CXX -I"$DIR" -std=$CXX_STANDARD $CXXFLAGS "$1.cpp" $LDFLAGS -o "$2" || exit 1
 $STRIP "$2"
 
 # cleanup
-rm -f "$1.cpp" i.o i s.o s
+rm -f "$1.cpp" i.o i s.o s rc4
