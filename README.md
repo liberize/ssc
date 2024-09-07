@@ -8,20 +8,30 @@ Upon execution, the binary will call real script interpreter (systemwide, bundle
 
 # Prerequisite
 
-* g++ (5.2 or above)
-* perl, binutils (probably already installed)
+*(Note: g++ version should be 5.2 or above)*
 
-For debian-based systems:
+For Debian-based Linux:
+* g++, perl, binutils
 * libc-dev, libstdc++-dev (only required by -s flag)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
 
-For redhat-based systems:
+For RedHat-based Linux:
+* g++, perl, binutils
 * glibc-static, libstdc++-static (only required by -s flag)
 * libarchive-devel, libacl-devel, zlib-devel (only required by -E flag)
 
-For android termux:
-* libandroid-wordexp
+For macOS without Homebrew:
+* Xcode command line tools
+
+For macOS with Homebrew:
+* g++, perl, binutils
+
+For Android Termux:
+* g++, perl, binutils, libandroid-wordexp
 * libandroid-wordexp-static, ndk-multilib-native-static (only required by -s flag)
+
+For Cygwin:
+* g++, perl, binutils
 
 # Usage
 
