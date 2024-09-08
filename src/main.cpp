@@ -215,6 +215,7 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    int ppid = getpid();
     int p = fork();
     if (p < 0) {
         perror(OBF("failed to fork child process!"));
@@ -294,7 +295,11 @@ int main(int argc, char* argv[]) {
         write(fd_script[1], script, script_len);
         close(fd_script[1]);
 
-        // exit without calling atexit handlers
-        _Exit(0);
+#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE)
+        // wait util parent process exit, then call atexit handler to remove extracted dir
+        while (getppid() == ppid) {
+            sleep(1);
+        }
+#endif
     }
 }

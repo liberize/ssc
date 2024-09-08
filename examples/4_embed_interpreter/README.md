@@ -6,7 +6,7 @@ Another benefit from embedding is enhanced source protection. Without embedding,
 
 To embed the interpreter, use `-e` flag.
 
-The interpreter will be extracted to /tmp/ssc/XXXXXX, and is not deleted by default. You have to delete it in your script like this:
+The interpreter will be extracted to /tmp/ssc/XXXXXX, and be deleted after script execution. You may delete it like this at beginning of your script to avoid exposure of the interpreter:
 
 ```bash
 rm -rf "$SSC_EXTRACT_DIR"
