@@ -1,6 +1,6 @@
 # Embed an interpreter into the binary
 
-We can even embed the interpreter into our binary, and make a single-file denpendency-free executable.
+We can even embed the interpreter into our binary, and make a single-file dependency-free executable.
 
 Another benefit from embedding is enhanced source protection. Without embedding, users can easily retrieve your script code with a spoofed interpreter.
 
