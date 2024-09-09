@@ -74,5 +74,5 @@ static int _remove_file(const char *pathname, const struct stat *sbuf, int type,
 }
 
 FORCE_INLINE void remove_directory(const char *dir) {
-    nftw(dir, _remove_file, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
+    nftw(dir, _remove_file, 10, FTW_DEPTH | FTW_PHYS);
 }
