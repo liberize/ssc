@@ -97,6 +97,11 @@ int main(int argc, char* argv[]) {
     const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
     int script_len = strlen(script);
 #endif
+    // support utf8 with bom
+    if (script_len >= 3 && script[0] == '\xEF' && script[1] == '\xBB' && script[2] == '\xBF') {
+        script += 3;
+        script_len -= 3;
+    }
 
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
