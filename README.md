@@ -6,6 +6,14 @@ ssc itself is not a compiler such as cc, it rather generates c++ source code wit
 
 Upon execution, the binary will call real script interpreter (systemwide, bundled or embeded), and fork a child process to pipe script code to the interpreter to execute.
 
+# Quickstart
+
+```bash
+echo "echo 'hello ssc'" >test.sh
+docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
+./test
+```
+
 # Prerequisite
 
 *(Note: g++ version should be 5.2 or above)*

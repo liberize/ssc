@@ -16,6 +16,15 @@ jobs:
     - name: Check out the repo
       uses: actions/checkout@v4
 
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          liberize/ssc
+        tags: |
+          type=sha
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
       
@@ -33,4 +42,4 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: true
-        tags: liberize/ssc:latest
+        tags: ${{ steps.meta.outputs.tags }}
