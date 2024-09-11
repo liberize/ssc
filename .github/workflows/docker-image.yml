@@ -23,8 +23,8 @@ jobs:
         images: |
           liberize/ssc
         tags: |
-          type=raw,value=latest
           type=sha,prefix=
+          type=raw,value=latest
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
