@@ -6,7 +6,7 @@ ssc itself is not a compiler such as cc, it rather generates c++ source code wit
 
 Upon execution, the binary will call real script interpreter (systemwide, bundled or embeded), and fork a child process to pipe script code to the interpreter to execute.
 
-# Quickstart
+## Quickstart
 
 ```bash
 echo "echo 'hello ssc'" >test.sh
@@ -14,7 +14,7 @@ docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
 ./test
 ```
 
-# Prerequisite
+## Prerequisite
 
 *(Note: g++ version should be 5.2 or above)*
 
@@ -41,7 +41,7 @@ For Android Termux:
 For Cygwin:
 * gcc-g++, perl, binutils
 
-# Usage
+## Usage
 
 ```bash
 ./ssc script binary
@@ -72,7 +72,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
   -h, --help               display this help and exit
 ```
 
-# Features
+## Features
 
 * support Linux/macOS/Cygwin
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
@@ -83,11 +83,11 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 * **anti-debugging** with ptrace detection
 * support embeding an interpreter or archive into output binary
 
-# Limitations
+## Limitations
 
 * `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. Try `-0` flag or use `$SSC_ARGV0` instead.
 
-# Examples
+## Examples
 
 1. [Script without a shebang.](https://github.com/liberize/ssc/tree/master/examples/1_without_shebang)
 2. [Script with a shebang.](https://github.com/liberize/ssc/tree/master/examples/2_with_shebang)
@@ -95,7 +95,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 4. [Embed an interpreter into the binary.](https://github.com/liberize/ssc/tree/master/examples/4_embed_interpreter)
 5. [Embed an archive into the binary.](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
 
-# Builtin variables
+## Builtin variables
 
 The following builtin variables are available to the script (including shebang):
 
@@ -104,7 +104,7 @@ The following builtin variables are available to the script (including shebang):
 * `SSC_ARGV0`: first command line argument (i.e. $0)
 * `SSC_EXTRACT_DIR`: temporary extraction directory for embeded file, if -e or -E flag is used
 
-# Interpreter selection
+## Interpreter selection
 
 If the script has no shebang, it's format will be deduced from file extension, and a default interpreter in PATH will be used.
 
@@ -118,7 +118,7 @@ If the binary is generated with `-e`, the interpreter is built into the binary. 
 
 If the binary is generated with `-E`, the archive is built into the binary. Upon execution, the archive will be decompressed and extracted to /tmp/ssc/XXXXXX/ with permissions perserved. If the script has a relative-path shebang, the interpreter of the path relative to the extraction directory will be used, otherwise, a system intepreter will be used.
 
-# Cross compiling
+## Cross compiling
 
 Set `CROSS_COMPILE` variable just like using Makefile.
 
