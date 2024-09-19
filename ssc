@@ -54,6 +54,7 @@ case "$(uname -s)" in
   Linux*)       MACHINE=Linux;;
   Darwin*)      MACHINE=Mac;;
   CYGWIN*)      MACHINE=Cygwin; CXX_STANDARD=gnu++14;;
+  FreeBSD*)     MACHINE=FreeBSD;;
   MINGW*|MSYS*) echo "please use cygwin"; exit 1;;
   *)            echo "unsupported system"; exit 1;;
 esac

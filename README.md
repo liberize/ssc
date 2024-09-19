@@ -74,7 +74,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 ## Features
 
-* support Linux/macOS/Cygwin
+* support Linux/macOS/Cygwin/FreeBSD
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and variable expanding in shebang
 * code protection with **compile time obfuscation or rc4 encryption**

@@ -214,11 +214,26 @@ int main(int argc, char* argv[]) {
     }
     setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
     
+#ifdef __FreeBSD__
+    char fifo_name[32];
+    int l = 100;
+    for (int i = getpid(); l--; ) {
+        i = (i * 1436856257) % 1436856259;
+        sprintf(fifo_name, "/tmp/ssc.%08x", i);
+        if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR))
+            break;
+    }
+    if (l < 0) {
+        perror(OBF("failed to create fifo!"));
+        return 2;
+    }
+#else
     int fd_script[2];
     if (pipe(fd_script) == -1) {
         perror(OBF("failed to create pipe!"));
         return 2;
     }
+#endif
 
     int ppid = getpid();
     int p = fork();
@@ -226,21 +241,26 @@ int main(int argc, char* argv[]) {
         perror(OBF("failed to fork child process!"));
         return 1;
     } else if (p > 0) { // parent process
+
+#ifdef __FreeBSD__
+        std::string path = fifo_name;
+#else
         close(fd_script[1]);
         
-        std::string fd_path = OBF("/proc/self/fd");
+        std::string path = OBF("/proc/self/fd");
         struct stat st;
 #ifdef __linux__
-        if ((stat(fd_path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) && getuid() == 0) {
+        if ((stat(path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) && getuid() == 0) {
             mkdir("/proc", 0755);
             mount("none", "/proc", "proc", 0, nullptr);
         }
 #endif
         if (stat(OBF("/dev/fd"), &st) == 0 && S_ISDIR(st.st_mode)) {
-            fd_path = OBF("/dev/fd");
+            path = OBF("/dev/fd");
         }
-        fd_path += '/';
-        fd_path += std::to_string(fd_script[0]);
+        path += '/';
+        path += std::to_string(fd_script[0]);
+#endif
 
         if (format == JAVASCRIPT) {
             args.emplace_back("--preserve-symlinks-main");
@@ -248,11 +268,11 @@ int main(int argc, char* argv[]) {
 #ifdef FIX_ARGV0
         if (format == SHELL) {
             args.emplace_back("-c");
-            args.emplace_back(". " + fd_path);
+            args.emplace_back(". " + path);
             args.emplace_back(argv[0]);
         } else
 #endif
-        args.emplace_back(fd_path);
+        args.emplace_back(path);
 
         for (auto i = 1; i < argc; i++) {
             args.emplace_back(argv[i]);
@@ -271,7 +291,16 @@ int main(int argc, char* argv[]) {
 
     } else { // child process
 
+#ifdef __FreeBSD__
+        int fd = open(fifo_name, O_WRONLY);
+        if (fd == -1) {
+            perror(OBF("failed to open fifo for writing!"));
+            return 1;
+        }
+#else
         close(fd_script[0]);
+        int fd = fd_script[1];
+#endif
 
 #ifdef FIX_ARGV0
         script_len -= shebang_end - script;
@@ -279,32 +308,35 @@ int main(int argc, char* argv[]) {
         if (format == SHELL) {
             if (shell == "bash") {
                 // only bash 5+ support BASH_ARGV0
-                //dprintf(fd_script[1], "BASH_ARGV0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                //dprintf(fd, "BASH_ARGV0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "zsh") {
-                dprintf(fd_script[1], "0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                dprintf(fd, "0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "fish") {
-                dprintf(fd_script[1], "set 0 '%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                dprintf(fd, "set 0 '%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
             }
         } else if (format == PYTHON) {
-            dprintf(fd_script[1], "import sys; sys.argv[0] = '''%s'''\n", argv[0]);
+            dprintf(fd, "import sys; sys.argv[0] = '''%s'''\n", argv[0]);
         } else if (format == PERL) {
-            dprintf(fd_script[1], "$0 = '%s';\n", str_replace_all(argv[0], "'", "\\'").c_str());
+            dprintf(fd, "$0 = '%s';\n", str_replace_all(argv[0], "'", "\\'").c_str());
         } else if (format == JAVASCRIPT) {
-            dprintf(fd_script[1], " __filename = `%s`; process.argv[1] = `%s`;\n", argv[0], argv[0]);
+            dprintf(fd, " __filename = `%s`; process.argv[1] = `%s`;\n", argv[0], argv[0]);
         }
 #endif
 #ifdef UNTRACEABLE
         check_debugger();
 #endif
         // write script content to writing end of fd_in pipe, then close it
-        write(fd_script[1], script, script_len);
-        close(fd_script[1]);
+        write(fd, script, script_len);
+        close(fd);
 
-#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE)
+#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(__FreeBSD__)
         // wait util parent process exit, then call atexit handler to remove extracted dir
         while (getppid() == ppid) {
             sleep(1);
         }
+#endif
+#ifdef __FreeBSD__
+        unlink(fifo_name);
 #endif
     }
 }

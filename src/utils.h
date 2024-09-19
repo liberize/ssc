@@ -5,6 +5,8 @@
 #include <ftw.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
+#elif defined(__FreeBSD__)
+#include <sys/sysctl.h>
 #endif
 #include "obfuscate.h"
 
@@ -36,12 +38,17 @@ FORCE_INLINE void errln(const char *m) {
 
 FORCE_INLINE std::string get_exe_path() {
     char buf[PATH_MAX] = {0};
-    int size = sizeof(buf);
 #if defined(__linux__) || defined(__CYGWIN__)
+    int size = sizeof(buf);
     size = readlink(OBF("/proc/self/exe"), buf, size);
     return size == -1 ? std::string() : std::string(buf, size);
 #elif defined(__APPLE__)
-    return _NSGetExecutablePath(buf, (unsigned*) &size) ? std::string() : std::string(buf);
+    unsigned size = sizeof(buf);
+    return _NSGetExecutablePath(buf, &size) ? std::string() : std::string(buf);
+#elif defined(__FreeBSD__)
+    size_t size = sizeof(buf);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, getpid() };
+    return sysctl(mib, 4, buf, &size, nullptr, 0) ? std::string() : std::string(buf);
 #else
     #error unsupported operating system!
 #endif

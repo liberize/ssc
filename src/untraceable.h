@@ -12,7 +12,7 @@ FORCE_INLINE void check_debugger() {
     }
 }
 
-#elif defined(__linux__) || defined(__APPLE__)
+#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <unistd.h>
