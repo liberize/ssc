@@ -72,9 +72,9 @@ int main(int argc, char* argv[]) {
     base_dir = extract_dir = extract_embeded_file();
     atexit(remove_extract_dir);
 #endif
-    setenv("SSC_EXTRACT_DIR", extract_dir.c_str(), 1);
-    setenv("SSC_EXECUTABLE_PATH", exe_path.c_str(), 1);
-    setenv("SSC_ARGV0", argv[0], 1);
+    setenv(OBF("SSC_EXTRACT_DIR"), extract_dir.c_str(), 1);
+    setenv(OBF("SSC_EXECUTABLE_PATH"), exe_path.c_str(), 1);
+    setenv(OBF("SSC_ARGV0"), argv[0], 1);
 
     std::string script_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
 #ifdef RC4_KEY
@@ -212,14 +212,14 @@ int main(int argc, char* argv[]) {
             interpreter_path = args[0];
         }
     }
-    setenv("SSC_INTERPRETER_PATH", interpreter_path.c_str(), 1);
+    setenv(OBF("SSC_INTERPRETER_PATH"), interpreter_path.c_str(), 1);
     
 #ifdef __FreeBSD__
     char fifo_name[32];
     int l = 100;
     for (int i = getpid(); l--; ) {
         i = (i * 1436856257) % 1436856259;
-        sprintf(fifo_name, "/tmp/ssc.%08x", i);
+        sprintf(fifo_name, OBF("/tmp/ssc.%08x"), i);
         if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR))
             break;
     }
@@ -251,8 +251,8 @@ int main(int argc, char* argv[]) {
         struct stat st;
 #ifdef __linux__
         if ((stat(path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) && getuid() == 0) {
-            mkdir("/proc", 0755);
-            mount("none", "/proc", "proc", 0, nullptr);
+            mkdir(OBF("/proc"), 0755);
+            mount(OBF("none"), OBF("/proc"), OBF("proc"), 0, nullptr);
         }
 #endif
         if (stat(OBF("/dev/fd"), &st) == 0 && S_ISDIR(st.st_mode)) {
@@ -263,7 +263,7 @@ int main(int argc, char* argv[]) {
 #endif
 
         if (format == JAVASCRIPT) {
-            args.emplace_back("--preserve-symlinks-main");
+            args.emplace_back(OBF("--preserve-symlinks-main"));
         }
 #ifdef FIX_ARGV0
         if (format == SHELL) {
@@ -308,18 +308,18 @@ int main(int argc, char* argv[]) {
         if (format == SHELL) {
             if (shell == "bash") {
                 // only bash 5+ support BASH_ARGV0
-                //dprintf(fd, "BASH_ARGV0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                //dprintf(fd, OBF("BASH_ARGV0='%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "zsh") {
-                dprintf(fd, "0='%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                dprintf(fd, OBF("0='%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "fish") {
-                dprintf(fd, "set 0 '%s'\n", str_replace_all(argv[0], "'", "'\\''").c_str());
+                dprintf(fd, OBF("set 0 '%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
             }
         } else if (format == PYTHON) {
-            dprintf(fd, "import sys; sys.argv[0] = '''%s'''\n", argv[0]);
+            dprintf(fd, OBF("import sys; sys.argv[0] = '''%s'''\n"), argv[0]);
         } else if (format == PERL) {
-            dprintf(fd, "$0 = '%s';\n", str_replace_all(argv[0], "'", "\\'").c_str());
+            dprintf(fd, OBF("$0 = '%s';\n"), str_replace_all(argv[0], "'", "\\'").c_str());
         } else if (format == JAVASCRIPT) {
-            dprintf(fd, " __filename = `%s`; process.argv[1] = `%s`;\n", argv[0], argv[0]);
+            dprintf(fd, OBF(" __filename = `%s`; process.argv[1] = `%s`;\n"), argv[0], argv[0]);
         }
 #endif
 #ifdef UNTRACEABLE
