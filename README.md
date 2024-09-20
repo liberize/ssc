@@ -20,56 +20,70 @@ docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
 
 <details>
 <summary>For Debian-based Linux distros</summary>
+<p>
 
 * g++, perl, binutils
 * libc-dev, libstdc++-dev (only required by -s flag)
 * libarchive-dev, acl-dev, libz-dev (only required by -E flag)
 
+</p>
 </details>
 
 <details>
 <summary>For RedHat-based Linux distros</summary>
+<p>
 
 * g++, perl, binutils
 * glibc-static, libstdc++-static (only required by -s flag)
 * libarchive-devel, libacl-devel, zlib-devel (only required by -E flag)
 
+</p>
 </details>
 
 <details>
 <summary>For macOS without Homebrew</summary>
+<p>
 
 * Xcode command line tools
 
+</p>
 </details>
 
 <details>
 <summary>For macOS with Homebrew</summary>
+<p>
 
 * gcc, perl, binutils
 
+</p>
 </details>
 
 <details>
 <summary>For Android Termux</summary>
+<p>
 
 * g++, perl, binutils, libandroid-wordexp
 * libandroid-wordexp-static, ndk-multilib-native-static (only required by -s flag)
 
+</p>
 </details>
 
 <details>
 <summary>For Cygwin</summary>
+<p>
 
 * gcc-g++, perl, binutils
 
+</p>
 </details>
 
 <details>
 <summary>For FreeBSD</summary>
+<p>
 
 * gcc, binutils
 
+</p>
 </details>
 
 ## Usage
