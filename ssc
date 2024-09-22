@@ -84,6 +84,9 @@ b2o() {
   return 0
 }
 
+# cleanup on exit
+trap "rm -f \"$1.cpp\" i.o i s.o s rc4" EXIT
+
 # convert interpreter to object file
 if [ -n "$EMBED_FILE" ]; then
   cp "$EMBED_FILE" i || exit 1
@@ -124,6 +127,3 @@ fi
 # compile c++ source code to binary
 $CXX -I"$DIR" -std=$CXX_STANDARD $CXXFLAGS "$1.cpp" $LDFLAGS -o "$2" || exit 1
 $STRIP "$2"
-
-# cleanup
-rm -f "$1.cpp" i.o i s.o s rc4
