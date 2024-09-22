@@ -126,7 +126,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 * pipes script code to interpreter to **avoid command line exposure**
 * support large script, up to 8MB with compile time obfuscation and unlimited with rc4 encryption
 * **anti-debugging** with ptrace detection
-* support embeding an interpreter or archive into output binary
+* support **embeding an interpreter or archive** into output binary
 
 ## Limitations
 
