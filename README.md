@@ -173,3 +173,15 @@ For example, to compile arm64 binary on x86_64 ubuntu:
 apt install g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
 CROSS_COMPILE=aarch64-linux-gnu- ./ssc script binary
 ```
+
+## Disclaimer
+
+Please read carefully and fully understand the following disclaimer before using this software:
+
+* This software is for personal study only, strictly prohibited for commercial or malicious purposes. if you use this software in the process of any illegal behavior, you need to bear the corresponding consequences, the author of the software will not bear any legal responsibility or joint liability.
+
+* This software is shared free of charge, any loss caused by using this software will be entirely borne by you, the author of the software will not bear any responsibility.
+
+* The copyright of this software statement, its right of modification, update and final interpretation belong to the author of the software.
+
+* Using this software means that you have fully understood, recognized and accepted all the terms and contents in this disclaimer.
