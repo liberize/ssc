@@ -8,7 +8,7 @@ while [ -n "$1" ]; do
     -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
     -i|--interpreter)       CXXFLAGS="$CXXFLAGS -DINTERPRETER=$2"; shift;;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
-    -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -larchive -lacl -lz"; shift;;
+    -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -pthread -lz"; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
     -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
     -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
@@ -32,7 +32,7 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
   echo "                           the interpreter will be used no matter what shebang is"
   echo "  -e, --embed-interpreter  embed specified interpreter into binary"
   echo "                           the interpreter will be used no matter what shebang is"
-  echo "  -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev"
+  echo "  -E, --embed-archive      embed specified tar.gz archive into binary, require zlib"
   echo "                           set relative path in shebang to use an interpreter in the archive"
   echo "  -0, --fix-argv0          try to fix \$0, may not work"
   echo "                           if it doesn't work or causes problems, use \$SSC_ARGV0 instead"
@@ -45,10 +45,12 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
 fi
 
 DIR="$(dirname "$0")/src"
-[ -z "$ARCH" ] && { [ -z "${CROSS_COMPILE}" ] && ARCH="$(uname -m)" || ARCH="${CROSS_COMPILE%%-*}" }
 [ -z "$CXX"   ] && CXX=${CROSS_COMPILE}g++
 [ -z "$LD"    ] && LD=${CROSS_COMPILE}ld
 [ -z "$STRIP" ] && STRIP=${CROSS_COMPILE}strip
+
+ARCH="$($CXX -dumpmachine)"
+ARCH="${ARCH%%-*}"
 
 CXX_STANDARD=c++14
 case "$(uname -s)" in

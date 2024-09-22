@@ -24,7 +24,7 @@ docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
 
 * g++, perl, binutils
 * libc-dev, libstdc++-dev (only required by -s flag)
-* libarchive-dev, acl-dev, libz-dev (only required by -E flag)
+* libz-dev (only required by -E flag)
 
 </p>
 </details>
@@ -35,7 +35,7 @@ docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
 
 * g++, perl, binutils
 * glibc-static, libstdc++-static (only required by -s flag)
-* libarchive-devel, libacl-devel, zlib-devel (only required by -E flag)
+* zlib-devel (only required by -E flag)
 
 </p>
 </details>
@@ -106,7 +106,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
                            the interpreter will be used no matter what shebang is
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
-  -E, --embed-archive      embed specified tar.gz archive into binary, require libarchive-dev
+  -E, --embed-archive      embed specified tar.gz archive into binary, require zlib
                            set relative path in shebang to use an interpreter in the archive
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, use $SSC_ARGV0 instead

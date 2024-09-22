@@ -11,7 +11,6 @@
 #include <wordexp.h>
 #include <vector>
 #include <string>
-#include <sstream>
 #include <iterator>
 #include <algorithm>
 #include "obfuscate.h"

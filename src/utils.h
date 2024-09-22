@@ -83,3 +83,26 @@ static int _remove_file(const char *pathname, const struct stat *sbuf, int type,
 FORCE_INLINE void remove_directory(const char *dir) {
     nftw(dir, _remove_file, 10, FTW_DEPTH | FTW_PHYS);
 }
+
+FORCE_INLINE bool is_dir(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+static int mkdir_recursive(const char *dir, int mode = S_IRWXU) {
+    char tmp[PATH_MAX + 1];
+    strncpy(tmp, dir, PATH_MAX);
+    size_t len = strlen(tmp);
+    if (tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
+    for (char *p = tmp + 1; *p; p++)
+        if (*p == '/') {
+            *p = 0;
+            if (!is_dir(tmp) && mkdir(tmp, mode) != 0)
+                return -1;
+            *p = '/';
+        }
+    if (!is_dir(tmp) && mkdir(tmp, mode) != 0)
+        return -1;
+    return 0;
+}
