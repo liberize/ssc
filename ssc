@@ -54,7 +54,7 @@ ARCH="${ARCH%%-*}"
 
 CXX_STANDARD=c++14
 case "$(uname -s)" in
-  Linux*)       SYSTEM=Linux;;
+  Linux*)       SYSTEM=Linux; [ -x "$(command -v termux-info)" ] && SYSTEM=Termux;;
   Darwin*)      SYSTEM=Mac;;
   CYGWIN*)      SYSTEM=Cygwin; CXX_STANDARD=gnu++14;;
   FreeBSD*)     SYSTEM=FreeBSD;;
@@ -62,7 +62,7 @@ case "$(uname -s)" in
   *)            echo "unsupported system"; exit 1;;
 esac
 
-if [ -x "$(command -v termux-info)" ]; then
+if [ "$SYSTEM" = Termux ]; then
   LDFLAGS="$LDFLAGS -landroid-wordexp"
   if [ "$STATIC" = 1 ]; then
     CXXFLAGS="$CXXFLAGS -ffunction-sections -fdata-sections"
