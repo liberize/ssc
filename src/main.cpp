@@ -318,7 +318,13 @@ int main(int argc, char* argv[]) {
         } else if (format == PERL) {
             dprintf(fd, OBF("$0 = '%s';\n"), str_replace_all(argv[0], "'", "\\'").c_str());
         } else if (format == JAVASCRIPT) {
-            dprintf(fd, OBF(" __filename = `%s`; process.argv[1] = `%s`;\n"), argv[0], argv[0]);
+            dprintf(fd, OBF("__filename = `%s`; process.argv[1] = `%s`;\n"), argv[0], argv[0]);
+        } else if (format == RUBY) {
+            dprintf(fd, OBF("$PROGRAM_NAME = '%s'\n"), str_replace_all(argv[0], "'", "\\'").c_str());
+        } else if (format == PHP) {
+            dprintf(fd, OBF("<?php $argv[0] = '%s'; ?>\n"), str_replace_all(argv[0], "'", "\\'").c_str());
+        } else if (format == LUA) {
+            dprintf(fd, OBF("arg[0] = '%s'\n"), str_replace_all(argv[0], "'", "\\'").c_str());
         }
 #endif
 #ifdef UNTRACEABLE
