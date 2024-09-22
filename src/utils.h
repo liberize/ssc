@@ -106,3 +106,8 @@ static int mkdir_recursive(const char *dir, int mode = S_IRWXU) {
         return -1;
     return 0;
 }
+
+FORCE_INLINE const char* tmpdir() {
+    auto d = getenv("TMPDIR");
+    return d && d[0] ? d : "/tmp";
+}

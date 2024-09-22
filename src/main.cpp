@@ -214,11 +214,11 @@ int main(int argc, char* argv[]) {
     setenv(OBF("SSC_INTERPRETER_PATH"), interpreter_path.c_str(), 1);
     
 #ifdef __FreeBSD__
-    char fifo_name[32];
+    char fifo_name[PATH_MAX];
     int l = 100;
     for (int i = getpid(); l--; ) {
         i = (i * 1436856257) % 1436856259;
-        sprintf(fifo_name, OBF("/tmp/ssc.%08x"), i);
+        sprintf(fifo_name, OBF("%s/ssc.%08x"), tmpdir(), i);
         if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR))
             break;
     }

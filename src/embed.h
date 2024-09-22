@@ -48,12 +48,13 @@ FORCE_INLINE std::string extract_embeded_file() {
     size_t size = &_binary_i_end - &_binary_i_start;
 #endif
     
-    auto dir = OBF("/tmp/ssc");
-    // delete the whole directory can cause troubles when multiple instances are running
-    //remove_directory(dir);
-    mkdir(dir, 0755);
     char path[PATH_MAX];
-    snprintf(path, sizeof(path), "%s/XXXXXX", dir);
+    strcpy(path, tmpdir());
+    strcat(path, OBF("/ssc"));
+    // delete the whole directory can cause troubles when multiple instances are running
+    //remove_directory(path);
+    mkdir(path, 0755);
+    strcat(path, "/XXXXXX");
     if (!mkdtemp(path)) {
         perror(OBF("failed to create output directory"));
         exit(1);
@@ -97,7 +98,8 @@ FORCE_INLINE std::string extract_embeded_file() {
 
 static void remove_extract_dir() {
     auto extract_dir = getenv("SSC_EXTRACT_DIR");
-    if (extract_dir && !strncmp(extract_dir, "/tmp/", 5)) {
+    auto tmp_dir = tmpdir();
+    if (extract_dir && !strncmp(extract_dir, tmp_dir, strlen(tmp_dir))) {
         //fprintf(stderr, "remove %s\n", extract_dir);
         remove_directory(extract_dir);
     }
