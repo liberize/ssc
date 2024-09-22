@@ -1,6 +1,6 @@
 # Simple Script Compiler
 
-This is a simple tool to turn script to binary, inspired by shc.
+This is a powerful tool to turn any script to binary, inspired by shc.
 
 ssc itself is not a compiler such as cc, it rather generates c++ source code with script code, then uses c++ compiler to compile the source into a binary which behaves exactly like the original script.
 
@@ -130,7 +130,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>
 
 ## Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx. Try `-0` flag or use `$SSC_ARGV0` instead.
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. Try `-0` flag or use `$SSC_ARGV0` instead.
 
 ## Examples
 
