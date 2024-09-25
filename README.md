@@ -41,19 +41,10 @@ docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
 </details>
 
 <details>
-<summary>For macOS without Homebrew</summary>
+<summary>For macOS</summary>
 <p>
 
 * Xcode command line tools
-
-</p>
-</details>
-
-<details>
-<summary>For macOS with Homebrew</summary>
-<p>
-
-* gcc, perl, binutils
 
 </p>
 </details>

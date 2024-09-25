@@ -81,7 +81,7 @@ if [ "$PTHREAD" = 1 -a "$STATIC" = 1 ]; then
 fi
 
 if [ -n "$EMBED_FILE" -o -n "$USE_RC4" ]; then
-  if [ "$SYSTEM" != Cygwin ]; then
+  if [ "$SYSTEM" != Cygwin -a "$SYSTEM" != Mac ]; then
     LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
   fi
 fi

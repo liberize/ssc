@@ -12,7 +12,22 @@ FORCE_INLINE void check_debugger() {
     }
 }
 
-#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+
+FORCE_INLINE void check_debugger() {
+    struct kinfo_proc info;
+    info.kp_proc.p_flag = 0;
+    size_t size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    if (sysctl(mib, 4, &info, &size, nullptr, 0) == 0 &&
+        (info.kp_proc.p_flag & P_TRACED) != 0) {
+        //perror(OBF("debugger present!"));
+        exit(1);
+    }
+}
+
+#elif defined(__linux__) || defined(__FreeBSD__)
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <unistd.h>
