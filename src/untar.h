@@ -4,9 +4,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <zlib.h>
-#include <thread>
 #include "utils.h"
 
 #define GET_NUM_BLOCKS(filesize) (int)ceil((double)filesize / (double)TAR_BLOCK_SIZE)
@@ -434,19 +434,29 @@ FORCE_INLINE int extract_tar_gz_from_mem(char *data, int size)
         perror("Failed to create pipe");
         return -1;
     }
-    FILE *fp = fdopen(pipe_fds[0], "rb");
-    if (fp == NULL) {
-        errln("Could not open pipe fd.");
-        close(pipe_fds[0]);
-        close(pipe_fds[1]);
+    int p = fork();
+    if (p < 0) {
+        perror(OBF("failed to fork child process!"));
         return -1;
-    }
-    std::thread t([=] {
-        gunzip(data, size, pipe_fds[1]);
+    } else if (p > 0) { // parent process
         close(pipe_fds[1]);
-    });
-    int r = extract_tar(fp);
-    fclose(fp);
-    t.join();
-    return r;
+        int r;
+        FILE *fp = fdopen(pipe_fds[0], "rb");
+        if (fp != NULL) {
+            r = extract_tar(fp);
+            fclose(fp);
+        } else {
+            errln("Could not open pipe fd.");
+            r = -1;
+            close(pipe_fds[0]);
+        }
+        kill(p, SIGKILL);
+        waitpid(p, 0, 0);
+        return r;
+    } else { // child process
+        close(pipe_fds[0]);
+        int r = gunzip(data, size, pipe_fds[1]);
+        close(pipe_fds[1]);
+        exit(r);
+    }
 }

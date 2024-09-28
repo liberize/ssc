@@ -87,7 +87,8 @@ FORCE_INLINE std::string extract_embeded_file() {
         perror(OBF("failed to change dir"));
         exit(1);
     }
-    extract_tar_gz_from_mem(data, size);
+    if (extract_tar_gz_from_mem(data, size) != 0)
+        exit(1);
     if (chdir(cwd) == -1) {
         perror(OBF("failed to change back dir"));
         exit(1);

@@ -8,7 +8,7 @@ while [ -n "$1" ]; do
     -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
     -i|--interpreter)       CXXFLAGS="$CXXFLAGS -DINTERPRETER=$2"; shift;;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
-    -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE -pthread"; LDFLAGS="$LDFLAGS -lz"; PTHREAD=1; shift;;
+    -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -lz"; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
     -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
     -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
@@ -67,16 +67,6 @@ if [ "$SYSTEM" = Termux ]; then
   if [ "$STATIC" = 1 ]; then
     CXXFLAGS="$CXXFLAGS -ffunction-sections -fdata-sections"
     LDFLAGS="$LDFLAGS -Wl,--gc-sections"
-  fi
-fi
-
-if [ "$PTHREAD" = 1 -a "$STATIC" = 1 ]; then
-  if [ "$SYSTEM" = Linux ]; then
-    # https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
-    LDFLAGS="$LDFLAGS -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
-  elif [ "$SYSTEM" = FreeBSD ]; then
-    # https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=273398
-    LDFLAGS="$LDFLAGS -Wl,--eh-frame-hdr"
   fi
 fi
 
