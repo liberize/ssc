@@ -3,21 +3,30 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <zlib.h>
 #include "utils.h"
 
-#define GET_NUM_BLOCKS(filesize) (int)ceil((double)filesize / (double)TAR_BLOCK_SIZE)
+// https://mort.coffee/home/tar/
+// https://serverfault.com/questions/250511/which-tar-file-format-should-i-use
+// https://www.gnu.org/software/tar/manual/html_node/Formats.html
+// https://www.gnu.org/software/tar/manual/html_node/Standard.html
 
 #ifdef _MSC_VER
     #define strtoull _strtoui64
     #define snprintf _snprintf
 #endif
 
-#define TAR_T_NORMAL1 0
-#define TAR_T_NORMAL2 '0'
+#define LOGD(fmt, ...) /* fprintf(stdout, fmt "\n", ##__VA_ARGS__) */
+#define LOGE(fmt, ...) fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+
+// ustar
+#define TAR_T_REGULAR1 0
+#define TAR_T_REGULAR2 '0'
 #define TAR_T_HARD '1'
 #define TAR_T_SYMBOLIC '2'
 #define TAR_T_CHARSPECIAL '3'
@@ -25,172 +34,455 @@
 #define TAR_T_DIRECTORY '5'
 #define TAR_T_FIFO '6'
 #define TAR_T_CONTIGUOUS '7'
+// gnu
+#define TAR_T_LONGNAME 'L'
+#define TAR_T_LONGLINK 'K'
+// pax
 #define TAR_T_GLOBALEXTENDED 'g'
 #define TAR_T_EXTENDED 'x'
 
+
 #define TAR_BLOCK_SIZE 512
 
-#define TAR_HT_PRE11988 1
-#define TAR_HT_P10031 2
-
-
-// Describes a header for TARs conforming to pre-POSIX.1-1988 .
-struct header_s
+struct tar_header_s
 {
-    char filename[100];
-    char filemode[8];
+    // v7 (pre-POSIX.1-1988)
+    char name[100];
+    char mode[8];
     char uid[8];
     char gid[8];
-    char filesize[12];
+    char size[12];
     char mtime[12];
-    char checksum[8];
-    char type;
-    char link_target[100];
+    char chksum[8];
+    char typeflag;      // or linkflag
+    char linkname[100];
 
-    char ustar_indicator[6];
-    char ustar_version[2];
-    char user_name[32];
-    char group_name[32];
-    char device_major[8];
-    char device_minor[8];
+    // ustar (POSIX 1003.1)
+    char magic[8];      // 6 bytes magic + 2 bytes version
+    char uname[32];
+    char gname[32];
+    char devmajor[8];
+    char devminor[8];
+    union {
+        char prefix[155];
+        // gnu
+        struct {
+            char atime[12];
+            char ctime[12];
+            // ...
+        };
+    };
 };
 
-typedef struct header_s header_t;
+typedef struct tar_header_s tar_header_t;
 
-struct header_translated_s
+struct tar_header_parsed_s
 {
-    char filename[101];
-    unsigned long long filemode;
+    char *path;
+    unsigned long long mode;
     unsigned long long uid;
     unsigned long long gid;
-    unsigned long long filesize;
-    unsigned long long mtime;
-    unsigned long long checksum;
-    char type;
-    char link_target[101];
+    unsigned long long size;
+    double mtime;
+    unsigned long long chksum;
+    char typeflag;
+    char *linkpath;
 
-    char ustar_indicator[6];
-    char ustar_version[3];
-    char user_name[32];
-    char group_name[32];
-    unsigned long long device_major;
-    unsigned long long device_minor;
+    char magic[8];
+    char *uname;
+    char *gname;
+    unsigned long long devmajor;
+    unsigned long long devminor;
+
+    double atime;
+    double ctime;
+
+    char path_buf[257];
+    char linkpath_buf[101];
+    char uname_buf[33];
+    char gname_buf[33];
 };
 
-typedef struct header_translated_s header_translated_t;
+typedef struct tar_header_parsed_s tar_header_parsed_t;
 
-
-FORCE_INLINE int parse_header(const unsigned char buffer[512], header_t *header)
+struct pax_header_parsed_s
 {
-    memcpy(header, buffer, sizeof(header_t));
-    return 0;
-}
+    char has_uid;
+    char has_gid;
+    char has_size;
+    char has_mtime;
+    char has_atime;
+    char has_ctime;
 
-static char *trim(char *raw, int length)
+    char *path;
+    unsigned long long uid;
+    unsigned long long gid;
+    unsigned long long size;
+    double mtime;
+    double atime;
+    double ctime;
+    char *linkpath;
+    char *uname;
+    char *gname;
+    // ...
+};
+
+typedef struct pax_header_parsed_s pax_header_parsed_t;
+
+struct tar_context_s
 {
-    int i = 0;
-    int j = length - 1;
+    int entry_index;
+    int empty_count;
+    FILE *fp_writer;
+    // gnu
+    char *longname;
+    int longname_wpos;
+    char *longlink;
+    int longlink_wpos;
+    // pax
+    char *pax_header;
+    int pax_wpos;
+    pax_header_parsed_t pax_parsed;
+};
 
-    // Determine left padding.
-    while ((raw[i] == 0 || raw[i] == ' ')) {
-        i++;
-        if (i >= length) {
-            raw[0] = '\0';
-            return raw;
-        }
-    }
-
-    // Determine right padding.
-    while ((raw[j] == 0 || raw[j] == ' ')) {
-        j--;
-        if (j <= i)
-            break;
-    }
-
-    // Place the terminator.
-    raw[j + 1] = 0;
-
-    // Return an offset pointer.
-    return &raw[i];
-}
+typedef struct tar_context_s tar_context_t;
 
 static unsigned long long decode_number(char *buffer, int size)
 {
+    unsigned long long r = 0;
     unsigned char *p = (unsigned char*)buffer;
-    if ((p[0] & 0x80) != 0) {    // base256
+    if ((p[0] & 0x80) != 0) {    // base256, gnu
         int negative = p[0] & 0x40;
-        unsigned long long r = negative ? p[0] : (p[0] & 0x7f);
+        r = negative ? p[0] : (p[0] & 0x7f);
         for (int i = 1; i < size; i++) {
             r = (r << 8) | p[i];
         }
-        return r;
-    } else {
-        char *buffer_ptr = trim(buffer, size);
-        return strtoull(buffer_ptr, NULL, 8);
+    } else {    // oct
+        int i = 0;
+        for (; i < size && buffer[i] == ' '; i++);
+        for (; i < size && buffer[i] >= '0' && buffer[i] <= '7'; i++) {
+            r = (r << 3) | (buffer[i] - '0');
+        }
     }
+    return r;
 }
 
-FORCE_INLINE int translate_header(header_t *raw_header, header_translated_t *parsed)
+FORCE_INLINE int parse_header(tar_context_t *context, tar_header_t *raw, tar_header_parsed_t *parsed)
 {
-    char buffer[101];
-    char *buffer_ptr;
+    memset(parsed, 0, sizeof(tar_header_parsed_t));
 
-    memcpy(buffer, raw_header->filename, 100);
-    buffer_ptr = trim(buffer, 100);
-    strcpy(parsed->filename, buffer_ptr);
+    parsed->path = parsed->path_buf;
+    parsed->linkpath = parsed->linkpath_buf;
+    parsed->uname = parsed->uname_buf;
+    parsed->gname = parsed->gname_buf;
 
-    memcpy(buffer, raw_header->filemode, 8);
-    parsed->filemode = decode_number(buffer, 8);
-
-    memcpy(buffer, raw_header->uid, 8);
-    parsed->uid = decode_number(buffer, 8);
-
-    memcpy(buffer, raw_header->gid, 8);
-    parsed->gid = decode_number(buffer, 8);
-
-    memcpy(buffer, raw_header->filesize, 12);
-    parsed->filesize = decode_number(buffer, 12);
-
-    memcpy(buffer, raw_header->mtime, 12);
-    parsed->mtime = decode_number(buffer, 12);
-
-    memcpy(buffer, raw_header->checksum, 8);
-    parsed->checksum = decode_number(buffer, 8);
-
-    parsed->type = raw_header->type;
-
-    memcpy(buffer, raw_header->link_target, 100);
-    buffer_ptr = trim(buffer, 100);
-    strcpy(parsed->link_target, buffer_ptr);
-
-    memcpy(buffer, raw_header->ustar_indicator, 6);
-    buffer_ptr = trim(buffer, 6);
-    strcpy(parsed->ustar_indicator, buffer_ptr);
+    parsed->mode   = decode_number(raw->mode, sizeof(raw->mode));
+    parsed->uid    = decode_number(raw->uid, sizeof(raw->uid));
+    parsed->gid    = decode_number(raw->gid, sizeof(raw->gid));
+    parsed->size   = decode_number(raw->size, sizeof(raw->size));
+    parsed->mtime  = decode_number(raw->mtime, sizeof(raw->mtime));
+    parsed->chksum = decode_number(raw->chksum, sizeof(raw->chksum));
+    parsed->typeflag = raw->typeflag;
+    strncpy(parsed->linkpath, raw->linkname, sizeof(raw->linkname));
+    memcpy(parsed->magic, raw->magic, sizeof(raw->magic));
     
-    memcpy(buffer, raw_header->ustar_version, 2);
-    buffer_ptr = trim(buffer, 2);
-    strcpy(parsed->ustar_version, buffer_ptr);
+    strncpy(parsed->uname, raw->uname, sizeof(raw->uname));
+    strncpy(parsed->gname, raw->gname, sizeof(raw->gname));
+    parsed->devmajor = decode_number(raw->devmajor, sizeof(raw->devmajor));
+    parsed->devminor = decode_number(raw->devminor, sizeof(raw->devminor));
     
-    if (strcmp(parsed->ustar_indicator, "ustar") == 0) {
-        memcpy(buffer, raw_header->user_name, 32);
-        buffer_ptr = trim(buffer, 32);
-        strcpy(parsed->user_name, buffer_ptr);
+    if (strcmp(parsed->magic, "ustar") == 0) {  // ustar
+        strncpy(parsed->path, raw->prefix, sizeof(raw->prefix));
+        if (parsed->path[0])
+            strcat(parsed->path, "/");
+    } else if (strcmp(parsed->magic, "ustar  ") == 0) {  // gnu
+        parsed->atime = decode_number(raw->atime, sizeof(raw->atime));
+        parsed->ctime = decode_number(raw->ctime, sizeof(raw->ctime));
+    }
+    strncat(parsed->path, raw->name, sizeof(raw->name));
 
-        memcpy(buffer, raw_header->group_name, 32);
-        buffer_ptr = trim(buffer, 32);
-        strcpy(parsed->group_name, buffer_ptr);
-
-        memcpy(buffer, raw_header->device_major, 8);
-        parsed->device_major = decode_number(buffer, 8);
-
-        memcpy(buffer, raw_header->device_minor, 8);
-        parsed->device_minor = decode_number(buffer, 8);
+    if (context->pax_header) {
+        if (context->pax_parsed.path)
+            parsed->path = context->pax_parsed.path;
+        if (context->pax_parsed.linkpath)
+            parsed->linkpath = context->pax_parsed.linkpath;
+        if (context->pax_parsed.has_uid)
+            parsed->uid = context->pax_parsed.uid;
+        if (context->pax_parsed.has_gid)
+            parsed->gid = context->pax_parsed.gid;
+        if (context->pax_parsed.has_size)
+            parsed->size = context->pax_parsed.size;
+        if (context->pax_parsed.has_mtime)
+            parsed->mtime = context->pax_parsed.mtime;
+        if (context->pax_parsed.has_atime)
+            parsed->atime = context->pax_parsed.atime;
+        if (context->pax_parsed.has_ctime)
+            parsed->ctime = context->pax_parsed.ctime;
+        if (context->pax_parsed.uname)
+            parsed->uname = context->pax_parsed.uname;
+        if (context->pax_parsed.gname)
+            parsed->gname = context->pax_parsed.gname;
     } else {
-        strcpy(parsed->user_name, "");
-        strcpy(parsed->group_name, "");
+        if (context->longname)
+            parsed->path = context->longname;
+        if (context->longlink)
+            parsed->linkpath = context->longlink;
+    }
 
-        parsed->device_major = 0;
-        parsed->device_minor = 0;
+    return 0;
+}
+
+// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/pax.html#tag_20_92_13_03
+// TODO: convert charset
+FORCE_INLINE int parse_pax_header(tar_context_t *context)
+{
+    char *line_beg = context->pax_header, *end = line_beg + context->pax_wpos;
+    char *line_end, *p;
+    while (line_beg < end) {
+        unsigned long len = strtoul(line_beg, &p, 10);
+        if (!len || *p != ' ')
+            return -1;
+        if (line_beg[len - 1] != '\n')
+            return -2;
+        line_beg[len - 1] = '\0';
+        line_end = line_beg + len;
+        char *key = ++p;
+        while (p < line_end && *p != '=')
+            ++p;
+        if (p >= line_end)
+            return -3;
+        *p++ = '\0';
+        LOGD("Found pax record. entry_index=%d key=%s val=%s", context->entry_index, key, p);
+        if (strcmp(key, "path") == 0) {
+            context->pax_parsed.path = p;
+        } else if (strcmp(key, "linkpath") == 0) {
+            context->pax_parsed.linkpath = p;
+        } else if (strcmp(key, "size") == 0) {
+            context->pax_parsed.size = strtoull(p, NULL, 10);
+            context->pax_parsed.has_size = 1;
+        } else if (strcmp(key, "uid") == 0) {
+            context->pax_parsed.uid = strtoull(p, NULL, 10);
+            context->pax_parsed.has_uid = 1;
+        } else if (strcmp(key, "gid") == 0) {
+            context->pax_parsed.gid = strtoull(p, NULL, 10);
+            context->pax_parsed.has_gid = 1;
+        } else if (strcmp(key, "mtime") == 0) {
+            context->pax_parsed.mtime = strtod(p, NULL);
+            context->pax_parsed.has_mtime = 1;
+        } else if (strcmp(key, "atime") == 0) {
+            context->pax_parsed.atime = strtod(p, NULL);
+            context->pax_parsed.has_atime = 1;
+        } else if (strcmp(key, "ctime") == 0) {
+            context->pax_parsed.ctime = strtod(p, NULL);
+            context->pax_parsed.has_ctime = 1;
+        } else if (strcmp(key, "uname") == 0) {
+            context->pax_parsed.uname= p;
+        } else if (strcmp(key, "gname") == 0) {
+            context->pax_parsed.gname = p;
+        } else {
+            LOGD("Ignore pax record. key=%s", key);
+        }
+        line_beg = line_end;
+    }
+    return 0;
+}
+
+FORCE_INLINE void reset_overrides(tar_context_t *context)
+{
+    free(context->longname);
+    context->longname = NULL;
+    context->longname_wpos = 0;
+
+    free(context->longlink);
+    context->longlink = NULL;
+    context->longlink_wpos = 0;
+
+    free(context->pax_header);
+    context->pax_header = NULL;
+    context->pax_wpos = 0;
+    memset(&context->pax_parsed, 0, sizeof(context->pax_parsed));
+}
+
+// TODO: delete file if path exists
+FORCE_INLINE int handle_entry_header(tar_context_t *context, tar_header_parsed_t *entry)
+{
+    LOGD("Found entry. index=%d type=%c path=%s size=%llu", context->entry_index, entry->typeflag, entry->path, entry->size);
+    
+    switch (entry->typeflag) {
+        case TAR_T_REGULAR1:
+        case TAR_T_REGULAR2:
+        case TAR_T_CONTIGUOUS: {
+            size_t len = strlen(entry->path);
+            while (--len > 0 && entry->path[len] != '/');
+            if (len > 0) {
+                entry->path[len] = '\0';
+                int rc = mkdir_recursive(entry->path);
+                entry->path[len] = '/';
+                if (rc != 0) {
+                    perror("Could not make directory");
+                    return -1;
+                }
+            }
+            int fd = open(entry->path, O_WRONLY | O_CREAT | O_TRUNC, entry->mode);
+            if (fd < 0) {
+                perror("Unable to open file for writing");
+                return -1;
+            }
+            if ((context->fp_writer = fdopen(fd, "wb")) == NULL) {
+                perror("Could not open output file");
+                close(fd);
+                return -1;
+            }
+            break;
+        }
+
+        case TAR_T_HARD:
+            if (link(entry->linkpath, entry->path) < 0) {
+                perror("Unable to create hardlink");
+                return -1;
+            }
+            break;
+
+        case TAR_T_SYMBOLIC:
+            if (symlink(entry->linkpath, entry->path) < 0) {
+                perror("Unable to create symlink");
+                return -1;
+            }
+            break;
+
+        case TAR_T_CHARSPECIAL:
+            if (mknod(entry->path, S_IFCHR | entry->mode, (entry->devmajor << 20) | entry->devminor) < 0) {
+                perror("Unable to create char device");
+                return -1;
+            }
+            break;
+
+        case TAR_T_BLOCKSPECIAL:
+            if (mknod(entry->path, S_IFBLK | entry->mode, (entry->devmajor << 20) | entry->devminor) < 0) {
+                perror("Unable to create block device");
+                return -1;
+            }
+            break;
+
+        case TAR_T_DIRECTORY:
+            if (mkdir_recursive(entry->path, entry->mode) < 0) {
+                perror("Unable to create directory");
+                return -1;
+            }
+            break;
+
+        case TAR_T_FIFO:
+            if (mkfifo(entry->path, entry->mode) < 0) {
+                perror("Unable to create fifo");
+                return -1;
+            }
+            break;
+        
+        case TAR_T_LONGNAME:
+            free(context->longname);
+            context->longname_wpos = 0;
+            context->longname = (char*) malloc(entry->size);
+            if (!context->longname) {
+                LOGE("Unable to alloc memory for long name! size=%d", entry->size);
+                return -1;
+            }
+            break;
+        
+        case TAR_T_LONGLINK:
+            free(context->longlink);
+            context->longlink_wpos = 0;
+            context->longlink = (char*) malloc(entry->size);
+            if (!context->longlink) {
+                LOGE("Unable to alloc memory for long linkname! size=%d", entry->size);
+                return -1;
+            }
+            break;
+        
+        case TAR_T_GLOBALEXTENDED:
+            break;      // ignore for now
+        case TAR_T_EXTENDED:
+            memset(&context->pax_parsed, 0, sizeof(context->pax_parsed));
+            free(context->pax_header);
+            context->pax_wpos = 0;
+            context->pax_header = (char*) malloc(entry->size);
+            if (!context->pax_header) {
+                LOGE("Unable to alloc memory for pax header! size=%d", entry->size);
+                return -1;
+            }
+            break;
+        
+        default:
+            LOGD("Ignore entry. entry_index=%d type=%c path=%s", context->entry_index, entry->typeflag, entry->path);
+            break;
+    }
+
+    return 0;
+}
+
+FORCE_INLINE int handle_entry_data(tar_context_t *context, tar_header_parsed_t *entry, unsigned char *block, int length)
+{
+    switch (entry->typeflag) {
+        case TAR_T_LONGNAME:
+            memcpy(context->longname + context->longname_wpos, block, length);
+            context->longname_wpos += length;
+            break;
+        
+        case TAR_T_LONGLINK:
+            memcpy(context->longlink + context->longlink_wpos, block, length);
+            context->longlink_wpos += length;
+            break;
+        
+        case TAR_T_GLOBALEXTENDED:
+            break;
+        case TAR_T_EXTENDED:
+            memcpy(context->pax_header + context->pax_wpos, block, length);
+            context->pax_wpos += length;
+            break;
+
+        default:
+            if (context->fp_writer != NULL)
+                if (fwrite(block, 1, length, context->fp_writer) != length)
+                    LOGE("Failed to write to output file!");
+            break;
+    }
+
+    return 0;
+}
+
+FORCE_INLINE int handle_entry_end(tar_context_t *context, tar_header_parsed_t *entry)
+{
+    if (context->fp_writer != NULL) {
+        fclose(context->fp_writer);
+        context->fp_writer = NULL;
+    }
+
+    switch (entry->typeflag) {
+        case TAR_T_LONGNAME:
+        case TAR_T_LONGLINK:
+            break;
+        case TAR_T_GLOBALEXTENDED:
+            break;      // ignore for now
+        case TAR_T_EXTENDED: {
+            int r = parse_pax_header(context);
+            if (r != 0)
+                LOGE("Failed to parse pax header! ret=%d", r);
+            break;
+        }
+        default: {
+            // FIXME: directory mtime should be set after all files in it have been extracted
+            struct stat st;
+            if (lstat(entry->path, &st) == 0) {
+                struct timeval tvs[2];
+                tvs[0].tv_sec = time(NULL);     // atime should be set to now, not atime in archive
+                tvs[0].tv_usec = 0;
+                tvs[1].tv_sec = (long) entry->mtime;
+                tvs[1].tv_usec = (long) ((entry->mtime - tvs[1].tv_sec) * 1000000);
+                if (lutimes(entry->path, tvs) < 0)
+                    perror("Unable to set mtime and atime");
+            }
+            reset_overrides(context);
+            break;
+        }
     }
 
     return 0;
@@ -200,190 +492,65 @@ FORCE_INLINE int read_block(FILE *fp, unsigned char *buffer)
 {
     int num_read = fread(buffer, 1, TAR_BLOCK_SIZE, fp);
     if (num_read < TAR_BLOCK_SIZE) {
-        errln("Not enough data to read");
+        LOGE("Not enough data to read! num_read=%d", num_read);
         return -1;
     }
     return 0;
 }
 
-FORCE_INLINE int entry_header_cb(header_translated_t *entry, int entry_index, FILE **fp_writer)
+FORCE_INLINE int untar(FILE *fp)
 {
-    //printf("entry %d: filename %s type %c\n", entry_index, entry->filename, entry->type);
-    switch (entry->type) {
-        case TAR_T_NORMAL1:
-        case TAR_T_NORMAL2:
-        case TAR_T_CONTIGUOUS: {
-            size_t len = strlen(entry->filename);
-            while (--len > 0 && entry->filename[len] != '/');
-            if (len > 0) {
-                entry->filename[len] = '\0';
-                int rc = mkdir_recursive(entry->filename);
-                entry->filename[len] = '/';
-                if (rc != 0) {
-                    perror("Could not make directory");
-                    return -1;
-                }
-            }
-            int fd = open(entry->filename, O_WRONLY | O_CREAT | O_TRUNC, entry->filemode);
-            if (fd < 0) {
-                perror("Unable to open file for writing");
-                return -1;
-            }
-            if ((*fp_writer = fdopen(fd, "wb")) == NULL) {
-                perror("Could not open output file");
-                close(fd);
-                return -1;
-            }
-            break;
-        }
-
-        case TAR_T_HARD:
-            if (link(entry->link_target, entry->filename) < 0) {
-                perror("Unable to create hardlink");
-                return -1;
-            }
-            break;
-
-        case TAR_T_SYMBOLIC:
-            if (symlink(entry->link_target, entry->filename) < 0) {
-                perror("Unable to create symlink");
-                return -1;
-            }
-            break;
-
-        case TAR_T_CHARSPECIAL:
-            if (mknod(entry->filename, S_IFCHR | entry->filemode, (entry->device_major << 20) | entry->device_minor) < 0) {
-                perror("Unable to create char device");
-                return -1;
-            }
-            break;
-
-        case TAR_T_BLOCKSPECIAL:
-            if (mknod(entry->filename, S_IFBLK | entry->filemode, (entry->device_major << 20) | entry->device_minor) < 0) {
-                perror("Unable to create block device");
-                return -1;
-            }
-            break;
-
-        case TAR_T_DIRECTORY:
-            if (mkdir_recursive(entry->filename, entry->filemode) < 0) {
-                perror("Unable to create directory");
-                return -1;
-            }
-            break;
-
-        case TAR_T_FIFO:
-            if (mkfifo(entry->filename, entry->filemode) < 0) {
-                perror("Unable to create fifo");
-                return -1;
-            }
-            break;
-        
-    }
-
-    return 0;
-}
-
-FORCE_INLINE int entry_data_cb(header_translated_t *entry, int entry_index, FILE *fp_writer, unsigned char *block, int length)
-{
-    if (fp_writer != NULL)
-        if (fwrite(block, 1, length, fp_writer) != length)
-            errln("Failed to write to output file");
-
-    return 0;
-}
-
-FORCE_INLINE int entry_end_cb(header_translated_t *entry, int entry_index, FILE *fp_writer)
-{
-    if (fp_writer != NULL) {
-        fclose(fp_writer);
-        fp_writer = NULL;
-    }
-    return 0;
-}
-
-FORCE_INLINE int get_last_block_portion_size(int filesize)
-{
-    const int partial = filesize % TAR_BLOCK_SIZE;
-    return (partial > 0 ? partial : TAR_BLOCK_SIZE);
-}
-
-FORCE_INLINE int extract_tar(FILE *fp)
-{
-    unsigned char buffer[TAR_BLOCK_SIZE + 1];
-    int header_checked = 0;
     int i;
+    int remain_size, current_size;
+    unsigned char buffer[TAR_BLOCK_SIZE + 1];
 
-    header_t header;
-    header_translated_t header_translated;
+    tar_header_parsed_t header_parsed;
+    tar_context_t context;
+    memset(&context, 0, sizeof(context));
 
-    int num_blocks;
-    int current_data_size;
-    int entry_index = 0;
-    int empty_count = 0;
+    while (context.empty_count < 2) {
 
-    buffer[TAR_BLOCK_SIZE] = 0;
-
-    // The end of the file is represented by two empty entries (which we 
-    // expediently identify by filename length).
-    while (empty_count < 2) {
         if (read_block(fp, buffer) != 0)
-            return -2;
+            break;
 
-        // If we haven't yet determined what format to support, read the 
-        // header of the next entry, now. This should be done only at the 
-        // top of the archive.
-
-        if (parse_header(buffer, &header) != 0) {
-            errln("Could not understand the header of the first entry in the TAR.");
-            return -3;
+        for (i = 0; i < TAR_BLOCK_SIZE && !buffer[i]; i++);
+        if (i >= TAR_BLOCK_SIZE) {
+            context.empty_count++;
+            context.entry_index++;
+            continue;
         }
-
-        if (strlen(header.filename) == 0) {
-            empty_count++;
-        } else {
-            if (translate_header(&header, &header_translated) != 0) {
-                errln("Could not translate header.");
-                return -4;
-            }
-
-            FILE *fp_writer = NULL;
-            if (entry_header_cb(&header_translated, entry_index, &fp_writer) != 0)
-                return -5;
+        context.empty_count = 0;
         
-            i = 0;
-            int received_bytes = 0;
-            num_blocks = GET_NUM_BLOCKS(header_translated.filesize);
-            while (i < num_blocks) {
-                if (read_block(fp, buffer) != 0) {
-                    errln("Could not read block. File too short.");
-                    break;
-                }
+        if (parse_header(&context, (tar_header_t*) buffer, &header_parsed) != 0)
+            break;
 
-                if (i >= num_blocks - 1)
-                    current_data_size = get_last_block_portion_size(header_translated.filesize);
-                else
-                    current_data_size = TAR_BLOCK_SIZE;
+        if (handle_entry_header(&context, &header_parsed) != 0)
+            break;
+    
+        remain_size = header_parsed.size;
+        while (remain_size > 0) {
+            if (read_block(fp, buffer) != 0)
+                break;
 
-                buffer[current_data_size] = 0;
+            current_size = remain_size < TAR_BLOCK_SIZE ? remain_size : TAR_BLOCK_SIZE;
+            buffer[current_size] = 0;
 
-                if (entry_data_cb(&header_translated, entry_index, fp_writer, buffer, current_data_size) != 0)
-                    break;
-
-                i++;
-                received_bytes += current_data_size;
-            }
-
-            entry_end_cb(&header_translated, entry_index, fp_writer);
-
-            if (i < num_blocks)
-                return -6;
+            if (handle_entry_data(&context, &header_parsed, buffer, current_size) != 0)
+                break;
+            
+            remain_size -= current_size;
         }
 
-        entry_index++;
+        handle_entry_end(&context, &header_parsed);
+
+        if (remain_size > 0)
+            break;
+
+        context.entry_index++;
     }
 
-    return 0;
+    reset_overrides(&context);
+    return context.empty_count < 2 ? -1 : 0;
 }
 
 FORCE_INLINE int gunzip(char *data, int size, int fd)
@@ -395,7 +562,7 @@ FORCE_INLINE int gunzip(char *data, int size, int fd)
     zs.avail_in = size;
 
     if (inflateInit2(&zs, (15 + 32)) != Z_OK) {
-        errln("inflateInit failed while decompressing.");
+        LOGE("inflateInit failed while decompressing.");
         return -1;
     }
 
@@ -420,7 +587,7 @@ FORCE_INLINE int gunzip(char *data, int size, int fd)
     inflateEnd(&zs);
 
     if (ret != Z_STREAM_END) {          // an error occurred that was not EOF
-        errln("Exception during zlib decompression");
+        LOGE("Exception during zlib decompression!");
         return -1;
     }
 
@@ -434,25 +601,29 @@ FORCE_INLINE int extract_tar_gz_from_mem(char *data, int size)
         perror("Failed to create pipe");
         return -1;
     }
+
     int p = fork();
     if (p < 0) {
         perror(OBF("failed to fork child process!"));
         return -1;
+
     } else if (p > 0) { // parent process
         close(pipe_fds[1]);
         int r;
         FILE *fp = fdopen(pipe_fds[0], "rb");
         if (fp != NULL) {
-            r = extract_tar(fp);
+            r = untar(fp);
             fclose(fp);
         } else {
-            errln("Could not open pipe fd.");
+            LOGE("Could not open pipe fd.");
             r = -1;
             close(pipe_fds[0]);
         }
+
         kill(p, SIGKILL);
         waitpid(p, 0, 0);
         return r;
+
     } else { // child process
         close(pipe_fds[0]);
         int r = gunzip(data, size, pipe_fds[1]);
