@@ -9,6 +9,7 @@ while [ -n "$1" ]; do
     -i|--interpreter)       CXXFLAGS="$CXXFLAGS -DINTERPRETER=$2"; shift;;
     -e|--embed-interpreter) EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_INTERPRETER_NAME=$2"; shift;;
     -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -lz"; shift;;
+    -M|--mount-squashfs)    SQUASHFS_DATA="$2"; CXXFLAGS="$CXXFLAGS -DMOUNT_SQUASHFS -pthread"; LDFLAGS="$LDFLAGS squashfuse/.libs/*.a -lz -ldl"; PTHREAD=1; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
     -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
     -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
@@ -21,7 +22,7 @@ while [ -n "$1" ]; do
 done
 eval set -- $POSITIONAL_ARGS
 if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
-  echo "Usage: $0 [-4] [-u] [-s] [-r] [-e|-E file] [-0] <script> <binary>"
+  echo "Usage: $0 [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script> <binary>"
   echo "  -u, --untraceable        make untraceable binary"
   echo "                           enable debugger detection, abort program when debugger is found"
   echo "  -s, --static             make static binary"
@@ -32,8 +33,10 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
   echo "                           the interpreter will be used no matter what shebang is"
   echo "  -e, --embed-interpreter  embed specified interpreter into binary"
   echo "                           the interpreter will be used no matter what shebang is"
-  echo "  -E, --embed-archive      embed specified tar.gz archive into binary, require zlib"
+  echo "  -E, --embed-archive      embed specified tar.gz archive into binary"
   echo "                           set relative path in shebang to use an interpreter in the archive"
+  echo "  -M, --mount-squashfs     append specified gzipped squashfs to binary and mount it at runtime"
+  echo "                           linux only, works like AppImage. may specify a directory"
   echo "  -0, --fix-argv0          try to fix \$0, may not work"
   echo "                           if it doesn't work or causes problems, use \$SSC_ARGV0 instead"
   echo "  -d, --expire-date        expire date, for example, 11/30/2023"
@@ -70,10 +73,32 @@ if [ "$SYSTEM" = Termux ]; then
   fi
 fi
 
+if [ "$PTHREAD" = 1 -a "$STATIC" = 1 ]; then
+  if [ "$SYSTEM" = Linux ]; then
+    # https://stackoverflow.com/questions/35116327/when-g-static-link-pthread-cause-segmentation-fault-why
+    LDFLAGS="$LDFLAGS -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+  elif [ "$SYSTEM" = FreeBSD ]; then
+    # https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=273398
+    LDFLAGS="$LDFLAGS -Wl,--eh-frame-hdr"
+  fi
+fi
+
 if [ -n "$EMBED_FILE" -o -n "$USE_RC4" ]; then
   if [ "$SYSTEM" != Cygwin -a "$SYSTEM" != Mac ]; then
     LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
   fi
+fi
+
+# build squashfuse if necessary
+if [ -n "$SQUASHFS_DATA" -a ! -f squashfuse/.libs/libsquashfuse_ll.a ]; then
+  echo '=> build squashfuse...'
+  [ -d squashfuse ] || git clone --depth=1 https://github.com/liberize/squashfuse || exit
+  cd squashfuse
+  ./autogen.sh || exit
+  sed -i "/PKG_CHECK_MODULES.*/,/,:./d" configure
+  ./configure --disable-demo --disable-high-level --without-lzo --without-lz4 --without-xz || exit
+  make -j $(nproc) || exit
+  cd ..
 fi
 
 b2o() {
@@ -91,7 +116,7 @@ b2o() {
 }
 
 # cleanup on exit
-trap "rm -f \"$1.cpp\" i.o i s.o s rc4" EXIT
+trap "rm -f \"$1.cpp\" i.o i s.o s rc4 d.squashfs" EXIT
 
 # convert interpreter to object file
 if [ -n "$EMBED_FILE" ]; then
@@ -131,5 +156,16 @@ if [ -n "$EXPIRE_MESSAGE" ]; then
 fi
 
 # compile c++ source code to binary
+echo '=> compile c++ code...'
 $CXX -I"$DIR" -std=$CXX_STANDARD $CXXFLAGS "$1.cpp" $LDFLAGS -o "$2" || exit 1
 $STRIP "$2"
+
+if [ -n "$SQUASHFS_DATA" ]; then
+  if [ -d "$SQUASHFS_DATA" ]; then
+    echo '=> create squashfs from dir...'
+    mksquashfs "$SQUASHFS_DATA" d.squashfs -root-owned -noappend || exit
+    cat d.squashfs >>"$2"
+  else
+    cat $SQUASHFS_DATA >>"$2"
+  fi
+fi

@@ -1,14 +1,10 @@
-# Embed an archive into the binary
+# Embed a squashfs file and mount it at runtime
 
-We can even embed an archive into our binary, and make a self-extracting dependency-free executable.
+Another way to pack some data into the binary and make a dependency-free executable. Same method is used by AppImage. Currently only availble on Linux.
 
-To embed an archive, use `-E` flag. The archive may or may not contain an interpreter.
+To embed a squashfs file, use `-M` flag.
 
-The archive will be extracted to /tmp/ssc/XXXXXX, and be deleted after script execution. You may delete it like this at beginning of your script to avoid exposure of the interpreter:
-
-```bash
-rm -rf "$SSC_EXTRACT_DIR"
-```
+The squashfs file is directly appended to the binary, upon execution it will be mounted to /tmp/ssc/XXXXXX. This method doesn't extract files, so it should be faster than `-E` flag.
 
 ## Example: python
 
@@ -22,11 +18,9 @@ wget https://github.com/indygreg/python-build-standalone/releases/download/20240
 tar -zxvf cpython.tar.gz
 rm -rf python/include python/share python/lib/pkgconfig python/bin/{2to3*,idle*,pip*,pydoc*,*-config}
 rm -rf python/lib/{*tcl*,thread*,Tix*,tk*}
-tar -zcvf cpython.tar.gz python
-rm -rf python
 
 # use -s flag to make our binary static
-../../ssc ./test_python.sh binary -s -E cpython.tar.gz
+../../ssc ./test_python.sh binary -s -M python
 
 # test it
 ./binary

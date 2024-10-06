@@ -25,6 +25,9 @@
 #if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(RC4_KEY)
 #include "embed.h"
 #endif
+#ifdef MOUNT_SQUASHFS
+#include "mount.h"
+#endif
 #ifdef RC4_KEY
 #include "rc4.h"
 #endif
@@ -58,7 +61,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
-    std::string interpreter_path, extract_dir;
+    std::string interpreter_path, extract_dir, mount_dir;
 
 #if defined(INTERPRETER)
     interpreter_path = OBF(STR(INTERPRETER));
@@ -70,8 +73,11 @@ int main(int argc, char* argv[]) {
 #elif defined(EMBED_ARCHIVE)
     base_dir = extract_dir = extract_embeded_file();
     atexit(remove_extract_dir);
+#elif defined(MOUNT_SQUASHFS)
+    base_dir = mount_dir = mount_squashfs();
 #endif
     setenv(OBF("SSC_EXTRACT_DIR"), extract_dir.c_str(), 1);
+    setenv(OBF("SSC_MOUNT_DIR"), mount_dir.c_str(), 1);
     setenv(OBF("SSC_EXECUTABLE_PATH"), exe_path.c_str(), 1);
     setenv(OBF("SSC_ARGV0"), argv[0], 1);
 

@@ -15,6 +15,9 @@
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
+#define LOGD(fmt, ...) /* fprintf(stdout, fmt "\n", ##__VA_ARGS__) */
+#define LOGE(fmt, ...) fprintf(stderr, fmt "\n", ##__VA_ARGS__)
+
 /*
  * These reporting functions use low-level I/O; on some systems, this
  * is a significant code reduction.  Of course, on many server and

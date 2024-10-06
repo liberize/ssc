@@ -21,9 +21,6 @@
     #define snprintf _snprintf
 #endif
 
-#define LOGD(fmt, ...) /* fprintf(stdout, fmt "\n", ##__VA_ARGS__) */
-#define LOGE(fmt, ...) fprintf(stderr, fmt "\n", ##__VA_ARGS__)
-
 // ustar
 #define TAR_T_REGULAR1 0
 #define TAR_T_REGULAR2 '0'
