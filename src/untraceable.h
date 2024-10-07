@@ -87,7 +87,7 @@ FORCE_INLINE void check_debugger() {
             LOGD("being traced!");
             kill(ppid, SIGKILL);
         }
-        exit(0);
+        _Exit(0);
     }
 }
 #endif

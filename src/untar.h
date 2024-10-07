@@ -625,6 +625,6 @@ FORCE_INLINE int extract_tar_gz_from_mem(char *data, int size)
         close(pipe_fds[0]);
         int r = gunzip(data, size, pipe_fds[1]);
         close(pipe_fds[1]);
-        exit(r);
+        _Exit(r);
     }
 }

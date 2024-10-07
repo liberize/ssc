@@ -148,7 +148,7 @@ FORCE_INLINE std::string mount_squashfs() {
         int r = fusefs_main(5, (char**) argv, fuse_mounted);  // daemonize on success
         if (r != 0)
             LOGE("failed to mount squashfs");
-        exit(r);
+        _Exit(r);
     }
 
     char c;
