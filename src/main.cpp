@@ -51,11 +51,11 @@ int main(int argc, char* argv[]) {
 #ifdef EXPIRE_DATE
     struct tm expire_tm;
     if (!strptime(OBF(STR(EXPIRE_DATE)), "%m/%d/%Y", &expire_tm)) {
-        errln(OBF("invalid expire date!"));
+        LOGE("invalid expire date!");
         return 1;
     }
     if (difftime(time(nullptr), mktime(&expire_tm)) >= 0) {
-        errln(OBF(R"SSC(script has expired!)SSC"));
+        LOGE(R"SSC(script has expired!)SSC");
         return 1;
     }
 #endif
@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
 
         wordexp_t wrde;
         if (wordexp(line.c_str(), &wrde, 0) != 0) {
-            errln(OBF("failed to parse shebang!"));
+            LOGE("failed to parse shebang!");
             return 1;
         }
         for (size_t i = 0; i < wrde.we_wordc; i++) {
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
             case PHP:        args.emplace_back("php"); break;
             case R:          args.emplace_back("Rscript"); break;
             case LUA:        args.emplace_back("lua"); break;
-            default:         errln(OBF("unknown format!")); return 4;
+            default:         LOGE("unknown format!"); return 4;
         }
     }
     if (interpreter_path.empty()) {
@@ -229,13 +229,13 @@ int main(int argc, char* argv[]) {
             break;
     }
     if (l < 0) {
-        perror(OBF("failed to create fifo!"));
+        LOGE("failed to create fifo!");
         return 2;
     }
 #else
     int fd_script[2];
     if (pipe(fd_script) == -1) {
-        perror(OBF("failed to create pipe!"));
+        LOGE("failed to create pipe!");
         return 2;
     }
 #endif
@@ -243,7 +243,7 @@ int main(int argc, char* argv[]) {
     int ppid = getpid();
     int p = fork();
     if (p < 0) {
-        perror(OBF("failed to fork child process!"));
+        LOGE("failed to fork process!");
         return 1;
     } else if (p > 0) { // parent process
 
@@ -291,7 +291,7 @@ int main(int argc, char* argv[]) {
         cargs.push_back(NULL);
         execvp(interpreter_path.c_str(), (char* const*) cargs.data());
         // error in execvp
-        perror(OBF("failed to exec interpreter!"));
+        LOGE("failed to execute interpreter! path=%s", interpreter_path.c_str());
         return 3;
 
     } else { // child process
@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
 #ifdef __FreeBSD__
         int fd = open(fifo_name, O_WRONLY);
         if (fd == -1) {
-            perror(OBF("failed to open fifo for writing!"));
+            LOGE("failed to open fifo for writing!");
             return 1;
         }
 #else

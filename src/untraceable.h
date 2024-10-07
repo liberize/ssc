@@ -7,7 +7,7 @@
 
 FORCE_INLINE void check_debugger() {
     if (IsDebuggerPresent()) {
-        //perror(OBF("debugger present!"));
+        LOGD("debugger present!");
         exit(1);
     }
 }
@@ -22,7 +22,7 @@ FORCE_INLINE void check_debugger() {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
     if (sysctl(mib, 4, &info, &size, nullptr, 0) == 0 &&
         (info.kp_proc.p_flag & P_TRACED) != 0) {
-        //perror(OBF("debugger present!"));
+        LOGD("debugger present!");
         exit(1);
     }
 }
@@ -60,7 +60,7 @@ FORCE_INLINE void check_debugger() {
     }
     ifs.close();
     if (tracer_pid != 0) {
-        //fprintf(stderr, OBF("found tracer. tracer_pid=%d\n"), tracer_pid);
+        LOGD("found tracer. tracer_pid=%d", tracer_pid);
         exit(1);
     }
     std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
@@ -68,14 +68,14 @@ FORCE_INLINE void check_debugger() {
     ifs2 >> ptrace_scope;
     ifs2.close();
     if (getuid() != 0 && ptrace_scope != 0) {
-        //fprintf(stderr, OBF("skip ptrace detection. uid=%d ptrace_scope=%d\n"), getuid(), ptrace_scope);
+        LOGD("skip ptrace detection. uid=%d ptrace_scope=%d", getuid(), ptrace_scope);
         return;
     }
 #endif
     int ppid = getpid();
     int p = fork();
     if (p < 0) {
-        perror(OBF("fork failed"));
+        LOGE("fork failed");
         exit(1);
     } else if (p > 0) { // parent process
         waitpid(p, 0, 0);
@@ -84,7 +84,7 @@ FORCE_INLINE void check_debugger() {
             wait(0);
             ptrace(PT_DETACH, ppid, 0, 0);
         } else {
-            //perror(OBF("being traced!"));
+            LOGD("being traced!");
             kill(ppid, SIGKILL);
         }
         exit(0);

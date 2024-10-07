@@ -316,17 +316,17 @@ FORCE_INLINE int handle_entry_header(tar_context_t *context, tar_header_parsed_t
                 int rc = mkdir_recursive(entry->path);
                 entry->path[len] = '/';
                 if (rc != 0) {
-                    perror("Could not make directory");
+                    LOGE("Could not make directory");
                     return -1;
                 }
             }
             int fd = open(entry->path, O_WRONLY | O_CREAT | O_TRUNC, entry->mode);
             if (fd < 0) {
-                perror("Unable to open file for writing");
+                LOGE("Unable to open file for writing");
                 return -1;
             }
             if ((context->fp_writer = fdopen(fd, "wb")) == NULL) {
-                perror("Could not open output file");
+                LOGE("Could not open output file");
                 close(fd);
                 return -1;
             }
@@ -335,42 +335,42 @@ FORCE_INLINE int handle_entry_header(tar_context_t *context, tar_header_parsed_t
 
         case TAR_T_HARD:
             if (link(entry->linkpath, entry->path) < 0) {
-                perror("Unable to create hardlink");
+                LOGE("Unable to create hardlink");
                 return -1;
             }
             break;
 
         case TAR_T_SYMBOLIC:
             if (symlink(entry->linkpath, entry->path) < 0) {
-                perror("Unable to create symlink");
+                LOGE("Unable to create symlink");
                 return -1;
             }
             break;
 
         case TAR_T_CHARSPECIAL:
             if (mknod(entry->path, S_IFCHR | entry->mode, (entry->devmajor << 20) | entry->devminor) < 0) {
-                perror("Unable to create char device");
+                LOGE("Unable to create char device");
                 return -1;
             }
             break;
 
         case TAR_T_BLOCKSPECIAL:
             if (mknod(entry->path, S_IFBLK | entry->mode, (entry->devmajor << 20) | entry->devminor) < 0) {
-                perror("Unable to create block device");
+                LOGE("Unable to create block device");
                 return -1;
             }
             break;
 
         case TAR_T_DIRECTORY:
             if (mkdir_recursive(entry->path, entry->mode) < 0) {
-                perror("Unable to create directory");
+                LOGE("Unable to create directory");
                 return -1;
             }
             break;
 
         case TAR_T_FIFO:
             if (mkfifo(entry->path, entry->mode) < 0) {
-                perror("Unable to create fifo");
+                LOGE("Unable to create fifo");
                 return -1;
             }
             break;
@@ -475,7 +475,7 @@ FORCE_INLINE int handle_entry_end(tar_context_t *context, tar_header_parsed_t *e
                 tvs[1].tv_sec = (long) entry->mtime;
                 tvs[1].tv_usec = (long) ((entry->mtime - tvs[1].tv_sec) * 1000000);
                 if (lutimes(entry->path, tvs) < 0)
-                    perror("Unable to set mtime and atime");
+                    LOGE("Unable to set mtime and atime");
             }
             reset_overrides(context);
             break;
@@ -595,13 +595,13 @@ FORCE_INLINE int extract_tar_gz_from_mem(char *data, int size)
 {
     int pipe_fds[2];
     if (pipe(pipe_fds) == -1) {
-        perror("Failed to create pipe");
+        LOGE("Failed to create pipe");
         return -1;
     }
 
     int p = fork();
     if (p < 0) {
-        perror(OBF("failed to fork child process!"));
+        LOGE("failed to fork process!");
         return -1;
 
     } else if (p > 0) { // parent process

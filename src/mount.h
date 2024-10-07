@@ -118,7 +118,7 @@ FORCE_INLINE std::string mount_squashfs() {
     auto exe_path = get_exe_path();
     auto fs_offset = get_elf_size(exe_path.c_str());
     if (fs_offset < 0) {
-        perror("failed to get size of current elf");
+        LOGE("failed to get size of current elf");
         exit(1);
     }
     char mount_dir[PATH_MAX];
@@ -127,17 +127,17 @@ FORCE_INLINE std::string mount_squashfs() {
     mkdir(mount_dir, 0755);
     strcat(mount_dir, "/XXXXXX");
     if (!mkdtemp(mount_dir)) {
-        perror("failed to create mount directory");
+        LOGE("failed to create mount directory");
         exit(1);
     }
     strcat(mount_dir, "/");
     if (pipe(keepalive_pipe) == -1) {
-        perror("failed to create pipe");
+        LOGE("failed to create pipe");
         exit(1);
     }
     int pid = fork();
     if (pid == -1) {
-        perror("failed to fork");
+        LOGE("failed to fork");
         exit(1);
     } else if (pid == 0) {
         close(keepalive_pipe[0]);
