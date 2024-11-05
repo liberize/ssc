@@ -55,6 +55,7 @@ DIR="$(dirname "$0")/src"
 ARCH="$($CXX -dumpmachine)"
 ARCH="${ARCH%%-*}"
 
+CXXFLAGS="$CXXFLAGS -w"
 CXX_STANDARD=c++14
 case "$(uname -s)" in
   Linux*)       SYSTEM=Linux; [ -x "$(command -v termux-info)" ] && SYSTEM=Termux;;
