@@ -1,18 +1,10 @@
 # Simple Script Compiler
 
-This is a powerful tool to turn any script to binary, inspired by shc.
+This is a powerful tool to turn almost any script to binary, inspired by shc.
 
 ssc itself is not a compiler such as cc, it rather generates c++ source code with script code, then uses c++ compiler to compile the source into a binary which behaves exactly like the original script.
 
 Upon execution, the binary will call real script interpreter (systemwide, bundled or embeded), and fork a child process to pipe script code to the interpreter to execute.
-
-## Quickstart
-
-```bash
-echo "echo 'hello ssc'" >test.sh
-docker run --rm -v $PWD:/workspace liberize/ssc:latest -s test.sh test
-./test
-```
 
 ## Prerequisite
 
@@ -99,10 +91,10 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
                            the interpreter will be used no matter what shebang is
   -e, --embed-interpreter  embed specified interpreter into binary
                            the interpreter will be used no matter what shebang is
-  -E, --embed-archive      embed specified tar.gz archive into binary, require zlib
+  -E, --embed-archive      embed specified tar.gz archive into binary
                            set relative path in shebang to use an interpreter in the archive
   -M, --mount-squashfs     append specified gzipped squashfs to binary and mount it at runtime
-                           linux only, works like AppImage. may specify a directory
+                           linux only, works like AppImage. if a directory is specified, create squashfs from it
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, use $SSC_ARGV0 instead
   -d, --expire-date        expire date, for example, 11/30/2023
@@ -114,7 +106,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
 
 ## Features
 
-* support Linux/macOS/Cygwin/FreeBSD
+* support Linux/macOS/Android/Cygwin/FreeBSD
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and variable expanding in shebang
 * code protection with **compile time obfuscation or rc4 encryption**
