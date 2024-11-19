@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <unistd.h>
 #include <limits.h>
 #include <ftw.h>
@@ -71,6 +72,11 @@ FORCE_INLINE bool is_dir(const char *path) {
     return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
 }
 
+FORCE_INLINE bool is_symlink(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0 && S_ISLNK(st.st_mode);
+}
+
 static int mkdir_recursive(const char *dir, int mode = S_IRWXU) {
     char tmp[PATH_MAX + 1];
     strncpy(tmp, dir, PATH_MAX);
@@ -93,3 +99,21 @@ FORCE_INLINE const char* tmpdir() {
     auto d = getenv("TMPDIR");
     return d && d[0] ? d : "/tmp";
 }
+
+class AutoCleaner {
+public:
+    ~AutoCleaner() {
+        for (auto& path : m_paths) {
+            if (is_dir(path.c_str())) {
+                remove_directory(path.c_str());
+            } else {
+                unlink(path.c_str());
+            }
+        }
+    }
+    void add(std::string path) {
+        m_paths.emplace_back(std::move(path));
+    }
+private:
+    std::vector<std::string> m_paths;
+};

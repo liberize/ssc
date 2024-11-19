@@ -96,7 +96,9 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
   -M, --mount-squashfs     append specified gzipped squashfs to binary and mount it at runtime
                            linux only, works like AppImage. if a directory is specified, create squashfs from it
   -0, --fix-argv0          try to fix $0, may not work
-                           if it doesn't work or causes problems, use $SSC_ARGV0 instead
+                           if it doesn't work or causes problems, try -n flag or use $SSC_ARGV0 instead
+  -n, --ps-name            change script path in ps output
+                           this will create a symlink to real path and pass it to the interperter
   -d, --expire-date        expire date, for example, 11/30/2023
   -m, --expire-message     expire message, default to 'script has expired!'
                            if it's a valid file path, read message from the file
@@ -117,7 +119,7 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
 
 ## Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. Try `-0` flag or use `$SSC_ARGV0` instead.
+* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. Try `-0` flag or `-n` flag or use `$SSC_ARGV0` instead.
 
 ## Examples
 

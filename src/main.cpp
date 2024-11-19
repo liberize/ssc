@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
+    static AutoCleaner cleaner;
     std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
     std::string interpreter_path, extract_dir, mount_dir;
 
@@ -69,10 +70,10 @@ int main(int argc, char* argv[]) {
 #if defined(EMBED_INTERPRETER_NAME)
     interpreter_path = extract_embeded_file();
     extract_dir = dir_name(interpreter_path);
-    atexit(remove_extract_dir);
+    cleaner.add(extract_dir);
 #elif defined(EMBED_ARCHIVE)
     base_dir = extract_dir = extract_embeded_file();
-    atexit(remove_extract_dir);
+    cleaner.add(extract_dir);
 #elif defined(MOUNT_SQUASHFS)
     base_dir = mount_dir = mount_squashfs();
 #endif
@@ -232,13 +233,55 @@ int main(int argc, char* argv[]) {
         LOGE("failed to create fifo!");
         return 2;
     }
+    std::string path = fifo_name;
+    cleaner.add(path);
 #else
     int fd_script[2];
     if (pipe(fd_script) == -1) {
         LOGE("failed to create pipe!");
         return 2;
     }
+    std::string path = OBF("/proc/self/fd");
+#ifdef __linux__
+    if (!is_dir(path.c_str()) && getuid() == 0) {
+        mkdir(OBF("/proc"), 0755);
+        mount(OBF("none"), OBF("/proc"), OBF("proc"), 0, nullptr);
+    }
 #endif
+    if (is_dir(OBF("/dev/fd"))) {
+        path = OBF("/dev/fd");
+    }
+    path += '/';
+    path += std::to_string(fd_script[0]);
+#endif
+
+#ifdef PS_NAME
+    if (is_symlink(OBF(STR(PS_NAME)))) {
+        unlink(OBF(STR(PS_NAME)));
+    }
+    if (symlink(path.c_str(), OBF(STR(PS_NAME))) != 0) {
+        LOGE("failed to create symlink! path=" STR(PS_NAME) " err=`%s`", strerror(errno));
+        return 5;
+    }
+    path = OBF(STR(PS_NAME));
+    cleaner.add(path);
+#endif
+
+    if (format == JAVASCRIPT) {
+        args.emplace_back(OBF("--preserve-symlinks-main"));
+    }
+#ifdef FIX_ARGV0
+    if (format == SHELL) {
+        args.emplace_back("-c");
+        args.emplace_back(". " + path);
+        args.emplace_back(argv[0]);
+    } else
+#endif
+    args.emplace_back(path);
+
+    for (auto i = 1; i < argc; i++) {
+        args.emplace_back(argv[i]);
+    }
 
     int ppid = getpid();
     int p = fork();
@@ -247,41 +290,9 @@ int main(int argc, char* argv[]) {
         return 1;
     } else if (p > 0) { // parent process
 
-#ifdef __FreeBSD__
-        std::string path = fifo_name;
-#else
-        close(fd_script[1]);
-        
-        std::string path = OBF("/proc/self/fd");
-        struct stat st;
-#ifdef __linux__
-        if ((stat(path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) && getuid() == 0) {
-            mkdir(OBF("/proc"), 0755);
-            mount(OBF("none"), OBF("/proc"), OBF("proc"), 0, nullptr);
-        }
+#ifndef __FreeBSD__
+        close(fd_script[1]); 
 #endif
-        if (stat(OBF("/dev/fd"), &st) == 0 && S_ISDIR(st.st_mode)) {
-            path = OBF("/dev/fd");
-        }
-        path += '/';
-        path += std::to_string(fd_script[0]);
-#endif
-
-        if (format == JAVASCRIPT) {
-            args.emplace_back(OBF("--preserve-symlinks-main"));
-        }
-#ifdef FIX_ARGV0
-        if (format == SHELL) {
-            args.emplace_back("-c");
-            args.emplace_back(". " + path);
-            args.emplace_back(argv[0]);
-        } else
-#endif
-        args.emplace_back(path);
-
-        for (auto i = 1; i < argc; i++) {
-            args.emplace_back(argv[i]);
-        }
 
         std::vector<const char*> cargs;
         cargs.reserve(args.size() + 1);
@@ -340,14 +351,12 @@ int main(int argc, char* argv[]) {
         write(fd, script, script_len);
         close(fd);
 
-#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(__FreeBSD__)
-        // wait util parent process exit, then call atexit handler to remove extracted dir
+#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(__FreeBSD__) || defined(PS_NAME)
+        // wait util parent process exit
+        signal(SIGINT, exit);
         while (getppid() == ppid) {
             sleep(1);
         }
-#endif
-#ifdef __FreeBSD__
-        unlink(fifo_name);
 #endif
     }
 }

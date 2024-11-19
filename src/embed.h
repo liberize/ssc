@@ -94,12 +94,3 @@ FORCE_INLINE std::string extract_embeded_file() {
 #endif
     return path;
 }
-
-static void remove_extract_dir() {
-    auto extract_dir = getenv(OBF("SSC_EXTRACT_DIR"));
-    auto tmp_dir = tmpdir();
-    if (extract_dir && !strncmp(extract_dir, tmp_dir, strlen(tmp_dir))) {
-        LOGD("remove extract dir. path=%s", extract_dir);
-        remove_directory(extract_dir);
-    }
-}

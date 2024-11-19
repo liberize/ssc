@@ -11,6 +11,7 @@ while [ -n "$1" ]; do
     -E|--embed-archive)     EMBED_FILE="$2"; CXXFLAGS="$CXXFLAGS -DEMBED_ARCHIVE"; LDFLAGS="$LDFLAGS -lz"; shift;;
     -M|--mount-squashfs)    SQUASHFS_DATA="$2"; CXXFLAGS="$CXXFLAGS -DMOUNT_SQUASHFS -pthread"; LDFLAGS="$LDFLAGS squashfuse/.libs/*.a -lz -ldl"; PTHREAD=1; shift;;
     -0|--fix-argv0)         CXXFLAGS="$CXXFLAGS -DFIX_ARGV0";;
+    -n|--ps-name)           CXXFLAGS="$CXXFLAGS -DPS_NAME=$2"; shift;;
     -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
     -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
     -v|--verbose)           set -x; CXXFLAGS="$CXXFLAGS -v";;
@@ -38,7 +39,9 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
   echo "  -M, --mount-squashfs     append specified gzipped squashfs to binary and mount it at runtime"
   echo "                           linux only, works like AppImage. if a directory is specified, create squashfs from it"
   echo "  -0, --fix-argv0          try to fix \$0, may not work"
-  echo "                           if it doesn't work or causes problems, use \$SSC_ARGV0 instead"
+  echo "                           if it doesn't work or causes problems, try -n flag or use \$SSC_ARGV0 instead"
+  echo "  -n, --ps-name            change script path in ps output"
+  echo "                           this will create a symlink to real path and pass it to the interperter"
   echo "  -d, --expire-date        expire date, for example, 11/30/2023"
   echo "  -m, --expire-message     expire message, default to 'script has expired!'"
   echo "                           if it's a valid file path, read message from the file"
