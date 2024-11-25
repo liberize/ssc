@@ -8,6 +8,9 @@
 #ifdef EMBED_ARCHIVE
 #include "untar.h"
 #endif
+#ifdef RC4_KEY
+#include "rc4.h"
+#endif
 
 #ifdef __APPLE__
 #include <mach-o/getsect.h>
@@ -46,6 +49,11 @@ FORCE_INLINE std::string extract_embeded_file() {
     extern char _binary_i_end;
     char *data = &_binary_i_start;
     size_t size = &_binary_i_end - &_binary_i_start;
+#endif
+
+#ifdef RC4_KEY
+    const char* rc4_key = OBF(STR(RC4_KEY));
+    rc4((u8*) data, size, (u8*) rc4_key, strlen(rc4_key));
 #endif
     
     char path[PATH_MAX];

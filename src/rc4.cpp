@@ -14,11 +14,6 @@ int main(int argc, const char **argv) {
         LOGE("open input file failed");
         return 1;
     }
-    int fd_out = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd_out == -1) {
-        LOGE("open output file failed");
-        return 1;
-    }
     off_t size = lseek(fd_in, 0, SEEK_END);
     lseek(fd_in, 0, SEEK_SET);
     if (size == (off_t) -1) {
@@ -34,13 +29,18 @@ int main(int argc, const char **argv) {
         LOGE("read file failed");
         return 1;
     }
+    close(fd_in);
     rc4((u8*) buf, size, (u8*) argv[3], strlen(argv[3]));
+    int fd_out = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd_out == -1) {
+        LOGE("open output file failed");
+        return 1;
+    }
     if (write(fd_out, buf, size) != size) {
         LOGE("write file failed");
         return 1;
     }
     free(buf);
-    close(fd_in);
     close(fd_out);
     return 0;
 }

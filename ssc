@@ -122,13 +122,7 @@ b2o() {
 # cleanup on exit
 trap "rm -f \"$1.cpp\" i.o i s.o s rc4 d.squashfs" EXIT
 
-# convert interpreter to object file
-if [ -n "$EMBED_FILE" ]; then
-  cp "$EMBED_FILE" i || exit 1
-  b2o i || exit 1
-  LDFLAGS="$LDFLAGS i.o"
-fi
-
+echo '=> generate c++ code...'
 if [ -n "$USE_RC4" ]; then
   # convert script to object file
   [ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc
@@ -157,6 +151,18 @@ if [ -n "$EXPIRE_MESSAGE" ]; then
   else
     perl -pe "s|script has expired!|$EXPIRE_MESSAGE|g" -i "$1.cpp" || exit 1
   fi
+fi
+
+# convert interpreter to object file
+if [ -n "$EMBED_FILE" ]; then
+  echo '=> prepare file for embedding...'
+  if [ -n "$USE_RC4" ]; then
+    ./rc4 "$EMBED_FILE" i "$RC4_KEY" || exit 1
+  else
+    cp "$EMBED_FILE" i || exit 1
+  fi
+  b2o i || exit 1
+  LDFLAGS="$LDFLAGS i.o"
 fi
 
 # compile c++ source code to binary
