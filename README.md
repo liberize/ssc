@@ -1,5 +1,7 @@
 # Simple Script Compiler
 
+[中文版](https://github.com/liberize/ssc/blob/master/README_zh_CN.md)
+
 This is a powerful tool to turn almost any script to binary, inspired by shc.
 
 ssc itself is not a compiler such as cc, it rather generates c++ source code with script code, then uses c++ compiler to compile the source into a binary which behaves exactly like the original script.
