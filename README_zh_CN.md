@@ -14,10 +14,10 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 <summary>基于Debian的Linux发行版</summary>
 <p>
 
-* g++，perl，binutils
-* libc-dev，libstdc++-dev（仅在使用-s标志时需要）
+* g++, perl, binutils
+* libc-dev, libstdc++-dev（仅在使用-s标志时需要）
 * libz-dev（仅在使用-E标志时需要）
-* libz-dev，libfuse-dev，git，gcc，make，automake，autoconf，pkg-config，libtool，squashfs-tools（仅在使用-M标志时需要）
+* libz-dev, libfuse-dev, git, gcc, make, automake, autoconf, pkg-config, libtool, squashfs-tools（仅在使用-M标志时需要）
 
 </p>
 </details>
@@ -26,10 +26,10 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 <summary>基于RedHat的Linux发行版</summary>
 <p>
 
-* g++，perl，binutils
-* glibc-static，libstdc++-static（仅在使用-s标志时需要）
+* g++, perl, binutils
+* glibc-static, libstdc++-static（仅在使用-s标志时需要）
 * zlib-devel（仅在使用-E标志时需要）
-* zlib-devel，fuse-devel，git，gcc，make，automake，autoconf，pkgconfig，libtool，squashfs-tools（仅在使用-M标志时需要）
+* zlib-devel, fuse-devel, git, gcc, make, automake, autoconf, pkgconfig, libtool, squashfs-tools（仅在使用-M标志时需要）
 
 </p>
 </details>
@@ -47,8 +47,8 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 <summary>Android Termux</summary>
 <p>
 
-* g++，perl，binutils，libandroid-wordexp
-* libandroid-wordexp-static，ndk-multilib-native-static（仅在使用-s标志时需要）
+* g++, perl, binutils, libandroid-wordexp
+* libandroid-wordexp-static, ndk-multilib-native-static（仅在使用-s标志时需要）
 
 </p>
 </details>
@@ -57,7 +57,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 <summary>Cygwin</summary>
 <p>
 
-* gcc-g++，perl，binutils
+* gcc-g++, perl, binutils
 
 </p>
 </details>
@@ -66,7 +66,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 <summary>FreeBSD</summary>
 <p>
 
-* gcc，binutils
+* gcc, binutils
 
 </p>
 </details>
@@ -92,8 +92,8 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
                            无论shebang是什么，都会使用指定的解释器
   -e, --embed-interpreter  将指定的解释器嵌入二进制文件
                            无论shebang是什么，都会使用嵌入的解释器
-  -E, --embed-archive      将指定的tar.gz归档文件嵌入二进制文件
-                           在shebang中使用相对路径以使用归档文件中的解释器
+  -E, --embed-archive      将指定的tar.gz压缩包嵌入二进制文件
+                           在shebang中使用相对路径以使用压缩包中的解释器
   -M, --mount-squashfs     将指定的gzip压缩的squashfs文件追加到二进制文件中，并在运行时挂载
                            仅适用于Linux，类似AppImage。如果指定的是目录，从这个目录创建squashfs文件
   -0, --fix-argv0          尝试修复$0，可能不起作用
@@ -116,7 +116,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 * 通过管道传输脚本代码到解释器，以避免命令行暴露脚本内容
 * 支持大脚本，使用编译时混淆时最大支持8MB，使用rc4加密则不受限制
 * 反调试，检测当前进程是否被附加了调试器
-* 支持将解释器或归档文件嵌入输出的二进制文件
+* 支持将解释器或压缩包嵌入到输出的二进制文件
 
 ## 限制
 
@@ -128,7 +128,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 2. [有shebang的脚本。](https://github.com/liberize/ssc/tree/master/examples/2_with_shebang)
 3. [调用外带的解释器。](https://github.com/liberize/ssc/tree/master/examples/3_bundle_interpreter)
 4. [将解释器嵌入二进制文件。](https://github.com/liberize/ssc/tree/master/examples/4_embed_interpreter)
-5. [将归档文件嵌入二进制文件。](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
+5. [将压缩包嵌入二进制文件。](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
 6. [将squashfs文件嵌入并在运行时挂载。](https://github.com/liberize/ssc/tree/master/examples/6_mount_squashfs)
 
 ## 内置变量
@@ -153,7 +153,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
 
 如果二进制文件是通过-e生成的，解释器将被嵌入到二进制文件中。执行时，解释器将被提取到/tmp/ssc/XXXXXX/目录中，然后使用shebang中的命令行参数来启动解释器。这种情况下，shebang中指定的程序将作为进程名称出现，但实际用的是嵌入的解释器。
 
-如果二进制文件是通过-E生成的，归档文件将被嵌入到二进制文件中。执行时，归档文件会被解压并提取到/tmp/ssc/XXXXXX/目录中，并保持文件权限。如果脚本使用了相对路径的shebang，将使用相对于提取目录的解释器；否则，将使用系统默认的解释器。
+如果二进制文件是通过-E生成的，压缩包将被嵌入到二进制文件中。执行时，压缩包会被解压并提取到/tmp/ssc/XXXXXX/目录中，并保持文件权限。如果脚本使用了相对路径的shebang，将使用相对于提取目录的解释器；否则，将使用系统默认的解释器。
 
 如果二进制文件是通过-M生成的，squashfs文件将被附加到二进制文件中。执行时，squashfs文件会被挂载到/tmp/ssc/XXXXXX/目录中。如果脚本使用了相对路径的shebang，将使用相对于挂载目录的解释器；否则，将使用系统默认的解释器。
 
