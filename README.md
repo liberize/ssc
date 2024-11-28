@@ -141,7 +141,7 @@ For maximum source code protection, use these flags
 ```
 
 * use compile time obfuscation to obfuscate string literals, so nothings useful will show with `strings` command
-* all debug symbols are stripped, increasing the difficulty to decompile and analyze the binary
+* all debug symbols are stripped and all functions are inlined, increasing the difficulty to decompile and analyze the binary
 * -u flag enables debugger detection at runtime, prevents tools like `gdb` `strace` from tracing `write` syscall
 * -s flag compiles a static binary, avoids LD_PRELOAD hook
 * -r flag generates a random rc4 key (obfuscated), increases the difficulty to decrypt with key directly from binary
