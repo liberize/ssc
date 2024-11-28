@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <limits.h>
 #include <ftw.h>
-#if defined(__APPLE__)
+#if defined(__linux__)
+#include <dirent.h>
+#elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #elif defined(__FreeBSD__)
 #include <sys/sysctl.h>
@@ -99,6 +101,58 @@ FORCE_INLINE const char* tmpdir() {
     auto d = getenv("TMPDIR");
     return d && d[0] ? d : "/tmp";
 }
+
+#ifdef __linux__
+FORCE_INLINE unsigned long get_pipe_id(const char *path) {
+    char dst[PATH_MAX] = {0};
+    if (readlink(path, dst, sizeof(dst)) < 0)
+        return 0;
+    if (strncmp(dst, "pipe:[", 6) != 0)
+        return 0;
+    return strtoul(dst + 6, nullptr, 10);
+}
+
+FORCE_INLINE void check_pipe_reader(unsigned long pipe_id) {
+    auto mypid = getpid(), ppid = getppid();
+
+    auto proc_dir = opendir("/proc");
+    if (!proc_dir)
+        return;
+
+    struct dirent *entry;
+    while ((entry = readdir(proc_dir))) {
+        if (entry->d_type != DT_DIR)
+            continue;
+        char *end = nullptr;
+        auto pid = strtoul(entry->d_name, &end, 10);
+        if (!pid || *end)
+            continue;
+        if (pid == mypid || pid == ppid)
+            continue;
+        
+        char buf[PATH_MAX];
+        auto len = snprintf(buf, sizeof(buf), "/proc/%s/fd", entry->d_name);
+        auto fd_dir = opendir(buf);
+        if (!fd_dir)
+            continue;
+        buf[len++] = '/';
+        
+        while ((entry = readdir(fd_dir))) {
+            if (entry->d_type != DT_LNK)
+                continue;
+            strcpy(buf + len, entry->d_name);
+            if (pipe_id == get_pipe_id(buf)) {
+                LOGD("process %lu is reading our pipe!", pid);
+                sleep(3);
+                exit(1);
+            }
+        }
+        closedir(fd_dir);
+    }
+
+    closedir(proc_dir);
+}
+#endif
 
 class AutoCleaner {
 public:

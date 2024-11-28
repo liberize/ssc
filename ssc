@@ -2,7 +2,7 @@
 
 while [ -n "$1" ]; do
   case "$1" in
-    -4|--rc4)               USE_RC4=1;;
+    -4|--rc4)               ;;    # keep for compatibility
     -u|--untraceable)       CXXFLAGS="$CXXFLAGS -DUNTRACEABLE";;
     -s|--static)            STATIC=1; CXXFLAGS="$CXXFLAGS -static -static-libgcc -static-libstdc++";;
     -r|--random-key)        RAND_KEY=1; CXXFLAGS="$CXXFLAGS -DOBFUSCATE_KEY=$(perl -e 'print int(rand(127))+1')";;
@@ -14,6 +14,7 @@ while [ -n "$1" ]; do
     -n|--ps-name)           CXXFLAGS="$CXXFLAGS -DPS_NAME=$2"; shift;;
     -d|--expire-date)       CXXFLAGS="$CXXFLAGS -DEXPIRE_DATE=$2"; shift;;
     -m|--expire-message)    EXPIRE_MESSAGE="$2"; shift;;
+    -S|--segment)           SEGMENT="$2"; shift;;
     -v|--verbose)           set -x; CXXFLAGS="$CXXFLAGS -v";;
     -h|--help)              SHOW_USAGE=1;;
     -*|--*)                 echo "Unknown option $1"; exit 1;;
@@ -23,13 +24,12 @@ while [ -n "$1" ]; do
 done
 eval set -- $POSITIONAL_ARGS
 if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
-  echo "Usage: $0 [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script> <binary>"
+  echo "Usage: $0 [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <script> <binary>"
   echo "  -u, --untraceable        make untraceable binary"
   echo "                           enable debugger detection, abort program when debugger is found"
   echo "  -s, --static             make static binary"
   echo "                           link statically, binary is more portable but bigger"
-  echo "  -4, --rc4                encrypt script with rc4 instead of compile time obfuscation"
-  echo "  -r, --random-key         use random key for obfuscation and encryption"
+  echo "  -r, --random-key         use random key for rc4 encryption"
   echo "  -i, --interpreter        override interpreter path"
   echo "                           the interpreter will be used no matter what shebang is"
   echo "  -e, --embed-interpreter  embed specified interpreter into binary"
@@ -41,10 +41,12 @@ if [ -n "$SHOW_USAGE" -o  $# != 2 ]; then
   echo "  -0, --fix-argv0          try to fix \$0, may not work"
   echo "                           if it doesn't work or causes problems, try -n flag or use \$SSC_ARGV0 instead"
   echo "  -n, --ps-name            change script path in ps output"
-  echo "                           this will create a symlink to real path and pass it to the interperter"
+  echo "                           upon execution, create a symlink to real path and pass it to the interperter"
   echo "  -d, --expire-date        expire date, for example, 11/30/2023"
   echo "  -m, --expire-message     expire message, default to 'script has expired!'"
-  echo "                           if it's a valid file path, read message from the file"
+  echo "                           if a valid file path is specified, read message from the file"
+  echo "  -S, --segment            split script to multiple segments, default to 1"
+  echo "                           upon execution, decrypt and write script segment by segment, check for debugger before each segment"
   echo "  -v, --verbose            show debug messages"
   echo "  -h, --help               display this help and exit"
   exit 0
@@ -58,7 +60,7 @@ DIR="$(dirname "$0")/src"
 ARCH="$($CXX -dumpmachine)"
 ARCH="${ARCH%%-*}"
 
-CXXFLAGS="$CXXFLAGS -w"
+CXXFLAGS="$CXXFLAGS -w -O3"
 CXX_STANDARD=c++14
 case "$(uname -s)" in
   Linux*)       SYSTEM=Linux; [ -x "$(command -v termux-info)" ] && SYSTEM=Termux;;
@@ -87,10 +89,8 @@ if [ "$PTHREAD" = 1 -a "$STATIC" = 1 ]; then
   fi
 fi
 
-if [ -n "$EMBED_FILE" -o -n "$USE_RC4" ]; then
-  if [ "$SYSTEM" != Cygwin -a "$SYSTEM" != Mac ]; then
-    LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
-  fi
+if [ "$SYSTEM" != Cygwin -a "$SYSTEM" != Mac ]; then
+  LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
 fi
 
 # build squashfuse if necessary
@@ -119,31 +119,35 @@ b2o() {
   return 0
 }
 
+if [ "$(head -c2 "$1")" = "#!" ]; then
+  SHEBANG="$(head -n1 "$1")"
+  SHEBANG_LEN="$(head -n1 "$1" | wc -c)"
+fi
+
 # cleanup on exit
 trap "rm -f \"$1.cpp\" i.o i s.o s rc4 d.squashfs" EXIT
 
-echo '=> generate c++ code...'
-if [ -n "$USE_RC4" ]; then
-  # convert script to object file
-  [ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc
-  CXXFLAGS="$CXXFLAGS -DRC4_KEY=$RC4_KEY"
-  [ -f ./rc4 ] || g++ -std=$CXX_STANDARD "$DIR/rc4.cpp" -o rc4 || exit 1
-  ./rc4 "$1" s $RC4_KEY || exit 1
-  b2o s || exit 1
-  LDFLAGS="$LDFLAGS s.o"
-  perl -pe "s|SCRIPT_FILE_NAME|$1|g" "$DIR/main.cpp" >"$1.cpp" || exit 1
-else
-  # increase template depth limit
-  if $CXX -v 2>&1 | grep clang >/dev/null 2>&1; then
-    $CXX -fconstexpr-depth=1 2>&1 | grep 'unknown argument' >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-depth=1073741824"
-    $CXX -fconstexpr-steps=1 2>&1 | grep 'unknown argument' >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-steps=1073741824"
-  else
-    $CXX -fconstexpr-loop-limit=1 2>&1 | grep unrecognized >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-loop-limit=1073741824"
-    $CXX -fconstexpr-ops-limit=1  2>&1 | grep unrecognized >/dev/null || CXXFLAGS="$CXXFLAGS -fconstexpr-ops-limit=1073741824"
-  fi
-  # generate c++ source code with script code
-  perl -pe "s|SCRIPT_FILE_NAME|$1|g; s|SCRIPT_CONTENT|\`cat '$1'\`|ge" "$DIR/main.cpp" >"$1.cpp" || exit 1
+echo '=> compile rc4 tool...'
+[ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc@2024
+CXXFLAGS="$CXXFLAGS -DRC4_KEY=$RC4_KEY"
+[ -f ./rc4 ] || g++ -std=$CXX_STANDARD -w "$DIR/rc4.cpp" -o rc4 || exit 1
+
+echo '=> encrypt script...'
+[ -n "$SEGMENT" ] || SEGMENT=1
+CXXFLAGS="$CXXFLAGS -DSEGMENT=$SEGMENT"
+./rc4 "$1" s "$RC4_KEY" "$SEGMENT" "$SHEBANG_LEN" || exit 1
+b2o s || exit 1
+LDFLAGS="$LDFLAGS s.o"
+
+if [ -n "$EMBED_FILE" ]; then
+  echo '=> encrypt file for embedding...'
+  ./rc4 "$EMBED_FILE" i "$RC4_KEY" || exit 1
+  b2o i || exit 1
+  LDFLAGS="$LDFLAGS i.o"
 fi
+
+echo '=> generate c++ code...'
+perl -pe "s|SCRIPT_FILE_NAME|$1|g; s@SCRIPT_SHEBANG@$SHEBANG@g" "$DIR/main.cpp" >"$1.cpp" || exit 1
 
 if [ -n "$EXPIRE_MESSAGE" ]; then
   if [ -f "$EXPIRE_MESSAGE" ]; then
@@ -153,26 +157,13 @@ if [ -n "$EXPIRE_MESSAGE" ]; then
   fi
 fi
 
-# convert interpreter to object file
-if [ -n "$EMBED_FILE" ]; then
-  echo '=> prepare file for embedding...'
-  if [ -n "$USE_RC4" ]; then
-    ./rc4 "$EMBED_FILE" i "$RC4_KEY" || exit 1
-  else
-    cp "$EMBED_FILE" i || exit 1
-  fi
-  b2o i || exit 1
-  LDFLAGS="$LDFLAGS i.o"
-fi
-
-# compile c++ source code to binary
 echo '=> compile c++ code...'
 $CXX -I"$DIR" -std=$CXX_STANDARD $CXXFLAGS "$1.cpp" $LDFLAGS -o "$2" || exit 1
 $STRIP "$2"
 
 if [ -n "$SQUASHFS_DATA" ]; then
+  echo '=> append squashfs to binary...'
   if [ -d "$SQUASHFS_DATA" ]; then
-    echo '=> create squashfs from dir...'
     mksquashfs "$SQUASHFS_DATA" d.squashfs -root-owned -noappend || exit
     cat d.squashfs >>"$2"
   else

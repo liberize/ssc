@@ -82,13 +82,12 @@ Upon execution, the binary will call real script interpreter (systemwide, bundle
 More options
 
 ```
-Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script> <binary>
+Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <script> <binary>
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
                            link statically, binary is more portable but bigger
-  -4, --rc4                encrypt script with rc4 instead of compile time obfuscation
-  -r, --random-key         use random key for obfuscation and encryption
+  -r, --random-key         use random key for rc4 encryption
   -i, --interpreter        override interpreter path
                            the interpreter will be used no matter what shebang is
   -e, --embed-interpreter  embed specified interpreter into binary
@@ -100,10 +99,12 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, try -n flag or use $SSC_ARGV0 instead
   -n, --ps-name            change script path in ps output
-                           this will create a symlink to real path and pass it to the interperter
+                           upon execution, create a symlink to real path and pass it to the interperter
   -d, --expire-date        expire date, for example, 11/30/2023
   -m, --expire-message     expire message, default to 'script has expired!'
-                           if it's a valid file path, read message from the file
+                           if a valid file path is specified, read message from the file
+  -S, --segment            split script to multiple segments, default to 1
+                           upon execution, decrypt and write script segment by segment, check for debugger before each segment
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```
@@ -113,10 +114,10 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
 * support Linux/macOS/Android/Cygwin/FreeBSD
 * **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
 * support relative path, environment variable and variable expanding in shebang
-* code protection with **compile time obfuscation or rc4 encryption**
+* code protection with **rc4 encryption**
 * pipes script code to interpreter to **avoid command line exposure**
-* support large script, up to 8MB with compile time obfuscation and unlimited with rc4 encryption
-* **anti-debugging** with ptrace detection
+* no limitation on script length
+* **anti-debugging** with debugger detection
 * support **embeding an interpreter or archive** into output binary
 
 ## Limitations
@@ -131,6 +132,21 @@ Usage: ./ssc [-4] [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] <script
 4. [Embed an interpreter into the binary.](https://github.com/liberize/ssc/tree/master/examples/4_embed_interpreter)
 5. [Embed an archive into the binary.](https://github.com/liberize/ssc/tree/master/examples/5_embed_archive)
 6. [Embed a squashfs file and mount it at runtime.](https://github.com/liberize/ssc/tree/master/examples/6_mount_squashfs)
+
+## Source code protection
+
+For maximum source code protection, use these flags
+```
+./ssc script binary -u -s -r -e /path/to/interpreter -S N
+```
+
+* use compile time obfuscation to obfuscate string literals, so nothings useful will show with `strings` command
+* all debug symbols are stripped, increasing the difficulty to decompile and analyze the binary
+* -u flag enables debugger detection at runtime, prevents tools like `gdb` `strace` from tracing `write` syscall
+* -s flag compiles a static binary, avoids LD_PRELOAD hook
+* -r flag generates a random rc4 key (obfuscated), increases the difficulty to decrypt with key directly from binary
+* -e flag embeds the interpreter to binary (encrypted), prevents source dumping with forged interpreter
+* -S flag splits script to N segments, checks for debugger and pipe reader before writing each segment to pipe, so at most one segment of source code may be acquired by reading from pipe or dumping memory.
 
 ## Builtin variables
 

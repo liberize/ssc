@@ -15,6 +15,8 @@
 #include <algorithm>
 #include "obfuscate.h"
 #include "utils.h"
+#include "embed.h"
+#include "rc4.h"
 #ifdef __linux__
 #include <sys/mount.h>
 #endif
@@ -22,14 +24,8 @@
 #ifdef UNTRACEABLE
 #include "untraceable.h"
 #endif
-#if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(RC4_KEY)
-#include "embed.h"
-#endif
 #ifdef MOUNT_SQUASHFS
 #include "mount.h"
-#endif
-#ifdef RC4_KEY
-#include "rc4.h"
 #endif
 
 enum ScriptFormat {
@@ -45,7 +41,7 @@ enum ScriptFormat {
 
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
-    check_debugger();
+    check_debugger(true);
 #endif
 
 #ifdef EXPIRE_DATE
@@ -82,9 +78,9 @@ int main(int argc, char* argv[]) {
     setenv(OBF("SSC_EXECUTABLE_PATH"), exe_path.c_str(), 1);
     setenv(OBF("SSC_ARGV0"), argv[0], 1);
 
-    std::string script_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
-#ifdef RC4_KEY
-    const char* rc4_key = OBF(STR(RC4_KEY));
+    std::string file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
+    std::string shebang = OBF(R"SSC(SCRIPT_SHEBANG)SSC");
+
 #ifdef __APPLE__
     auto buf = read_data_sect("s");
     if (buf.empty())
@@ -97,24 +93,13 @@ int main(int argc, char* argv[]) {
     char* script_data = &_binary_s_start;
     int script_len = &_binary_s_end - &_binary_s_start;
 #endif
-    rc4((u8*) script_data, script_len, (u8*) rc4_key, strlen(rc4_key));
-    const char* script = script_data;
-#else
-    const char* script = OBF(R"SSC(SCRIPT_CONTENT)SSC");
-    int script_len = strlen(script);
-#endif
-    // support utf8 with bom
-    if (script_len >= 3 && script[0] == '\xEF' && script[1] == '\xBB' && script[2] == '\xBF') {
-        script += 3;
-        script_len -= 3;
-    }
 
     // detect script format by file name suffix
     ScriptFormat format = SHELL;
     std::string shell("sh");
-    auto pos = script_name.find_last_of(".");
+    auto pos = file_name.find_last_of(".");
     if (pos != std::string::npos) {
-        auto suffix = script_name.substr(pos + 1);
+        auto suffix = file_name.substr(pos + 1);
         std::transform(suffix.begin(), suffix.end(), suffix.begin(), [] (unsigned char c) {
             return std::tolower(c);
         });
@@ -139,21 +124,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<std::string> args;
-    const char *shebang_end = script;
     // parse shebang
-    if (script[0] == '#' && script[1] == '!') {
-        std::string line;
-        auto p = strpbrk(script, "\r\n");
-        if (p) {
-            line.assign(script + 2, p - script - 2);
-            shebang_end = p + (p[0] == '\r' && p[1] == '\n' ? 2 : 1);
-        } else {
-            line.assign(script + 2);
-            shebang_end = script + script_len;
-        }
-
+    if (!shebang.empty()) {
         wordexp_t wrde;
-        if (wordexp(line.c_str(), &wrde, 0) != 0) {
+        if (wordexp(shebang.c_str() + 2, &wrde, 0) != 0) {
             LOGE("failed to parse shebang!");
             return 1;
         }
@@ -163,7 +137,9 @@ int main(int argc, char* argv[]) {
                 if (!strcmp(s, "env") || !strcmp(s, "/usr/bin/env")) {
                     continue;
                 }
-                for (p = s; *p == '_' || isalnum(*p); ++p);
+                auto p = s;
+                while (*p == '_' || isalnum(*p))
+                    ++p;
                 if (*p == '=') {
                     std::string name(s, p - s);
                     setenv(name.c_str(), ++p, 1);
@@ -319,8 +295,6 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef FIX_ARGV0
-        script_len -= shebang_end - script;
-        script = shebang_end;
         if (format == SHELL) {
             if (shell == "bash") {
                 // only bash 5+ support BASH_ARGV0
@@ -343,12 +317,36 @@ int main(int argc, char* argv[]) {
         } else if (format == LUA) {
             dprintf(fd, OBF("arg[0] = '%s'\n"), str_replace_all(argv[0], "'", "\\'").c_str());
         }
+#else
+        write(fd, shebang.c_str(), shebang.size());
+        write(fd, "\n", 1);
 #endif
+
+#ifdef __linux__
+        auto pipe_id = get_pipe_id(("/proc/self/fd/" + std::to_string(fd)).c_str());
+#endif
+        int n = SEGMENT;
+        n = std::max(std::min(n, script_len), 1);
+        int max_seg_len = (script_len + n - 1) / n;
+        const char* rc4_key = OBF(STR(RC4_KEY));
+        int rc4_key_len = strlen(rc4_key);
+        while (script_len > 0) {
 #ifdef UNTRACEABLE
-        check_debugger();
+            check_debugger(false);
 #endif
-        // write script content to writing end of fd_in pipe, then close it
-        write(fd, script, script_len);
+#ifdef __linux__
+            if (pipe_id > 0)
+                check_pipe_reader(pipe_id);
+#endif
+            auto seg_len = std::min(max_seg_len, script_len);
+            //LOGD("decrypt segment. size=%d", seg_len);
+            rc4((u8*) script_data, seg_len, (u8*) rc4_key, rc4_key_len);
+            write(fd, script_data, seg_len);
+            memset(script_data, 0, seg_len);
+            script_len -= seg_len;
+            script_data += seg_len;
+        }
+        memset((void*) rc4_key, 0, rc4_key_len);
         close(fd);
 
 #if defined(EMBED_INTERPRETER_NAME) || defined(EMBED_ARCHIVE) || defined(__FreeBSD__) || defined(PS_NAME)

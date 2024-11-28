@@ -5,7 +5,7 @@
 #if defined(__CYGWIN__)
 #include <Windows.h>
 
-FORCE_INLINE void check_debugger() {
+FORCE_INLINE void check_debugger(bool full) {
     if (IsDebuggerPresent()) {
         LOGD("debugger present!");
         exit(1);
@@ -15,7 +15,7 @@ FORCE_INLINE void check_debugger() {
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
 
-FORCE_INLINE void check_debugger() {
+FORCE_INLINE void check_debugger(bool full) {
     struct kinfo_proc info;
     info.kp_proc.p_flag = 0;
     size_t size = sizeof(info);
@@ -46,7 +46,7 @@ FORCE_INLINE void check_debugger() {
     #endif
 #endif
 
-FORCE_INLINE void check_debugger() {
+FORCE_INLINE void check_debugger(bool full) {
 #ifdef __linux__
     std::ifstream ifs(OBF("/proc/self/status"));
     std::string line, needle = OBF("TracerPid:\t");
@@ -62,6 +62,9 @@ FORCE_INLINE void check_debugger() {
     if (tracer_pid != 0) {
         LOGD("found tracer. tracer_pid=%d", tracer_pid);
         exit(1);
+    }
+    if (!full) {
+        return;
     }
     std::ifstream ifs2(OBF("/proc/sys/kernel/yama/ptrace_scope"));
     int ptrace_scope = 0;
