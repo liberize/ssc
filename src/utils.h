@@ -107,7 +107,7 @@ FORCE_INLINE unsigned long get_pipe_id(const char *path) {
     char dst[PATH_MAX] = {0};
     if (readlink(path, dst, sizeof(dst)) < 0)
         return 0;
-    if (strncmp(dst, "pipe:[", 6) != 0)
+    if (strncmp(dst, OBF("pipe:["), 6) != 0)
         return 0;
     return strtoul(dst + 6, nullptr, 10);
 }
@@ -115,7 +115,7 @@ FORCE_INLINE unsigned long get_pipe_id(const char *path) {
 FORCE_INLINE void check_pipe_reader(unsigned long pipe_id) {
     auto mypid = getpid(), ppid = getppid();
 
-    auto proc_dir = opendir("/proc");
+    auto proc_dir = opendir(OBF("/proc"));
     if (!proc_dir)
         return;
 
@@ -131,7 +131,7 @@ FORCE_INLINE void check_pipe_reader(unsigned long pipe_id) {
             continue;
         
         char buf[PATH_MAX];
-        auto len = snprintf(buf, sizeof(buf), "/proc/%s/fd", entry->d_name);
+        auto len = snprintf(buf, sizeof(buf), OBF("/proc/%s/fd"), entry->d_name);
         auto fd_dir = opendir(buf);
         if (!fd_dir)
             continue;

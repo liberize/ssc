@@ -111,18 +111,18 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <scri
 
 ## Features
 
-* support Linux/macOS/Android/Cygwin/FreeBSD
-* **support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
-* support relative path, environment variable and variable expanding in shebang
-* code protection with **rc4 encryption**
-* pipes script code to interpreter to **avoid command line exposure**
-* no limitation on script length
-* **anti-debugging** with debugger detection
-* support **embeding an interpreter or archive** into output binary
+* Support Linux/macOS/Android/Cygwin/FreeBSD
+* **Support Shell/Python/Perl/NodeJS/Ruby/PHP/R/Lua** and other scripts with custom shebang
+* Support relative path, environment variable and variable expanding in shebang
+* Code protection with **rc4 encryption**
+* Pipes script code to interpreter to **avoid command line exposure**
+* No limitation on script length
+* **Anti-debugging** with debugger detection
+* Support **embeding an interpreter or archive** into output binary
 
 ## Limitations
 
-* `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. Try `-0` flag or `-n` flag or use `$SSC_ARGV0` instead.
+* By default, `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. To workaround this, try `-0` flag or `-n` flag or use `$SSC_ARGV0` instead.
 
 ## Examples
 
@@ -137,13 +137,13 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <scri
 
 For maximum source code protection, use these flags
 ```
-./ssc script binary -u -s -r -e /path/to/interpreter -S N
+./ssc script binary -u -s -r -e file -S N
 ```
 
-* use compile time obfuscation to obfuscate string literals, so nothings useful will show with `strings` command
-* all debug symbols are stripped and all functions are inlined, increasing the difficulty to decompile and analyze the binary
-* -u flag enables debugger detection at runtime, prevents tools like `gdb` `strace` from tracing `write` syscall
-* -s flag compiles a static binary, avoids LD_PRELOAD hook
+* All sensitive string literals are obfuscated with compile time obfuscation, so nothings useful will show with `strings` command
+* All debug symbols are stripped and all functions are inlined, increasing the difficulty to decompile and analyze the binary
+* -u flag enables debugger detection at runtime, prevents tools like `gdb` `strace` from tracing `read` `write` syscall
+* -s flag compiles a static binary, prevents function hook with LD_PRELOAD
 * -r flag generates a random rc4 key (obfuscated), increases the difficulty to decrypt with key directly from binary
 * -e flag embeds the interpreter to binary (encrypted), prevents source dumping with forged interpreter
 * -S flag splits script to N segments, checks for debugger and pipe reader before writing each segment to pipe, so at most one segment of source code may be acquired by reading from pipe or dumping memory.

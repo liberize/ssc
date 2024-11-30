@@ -323,7 +323,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef __linux__
-        auto pipe_id = get_pipe_id(("/proc/self/fd/" + std::to_string(fd)).c_str());
+        auto pipe_id = get_pipe_id((OBF("/proc/self/fd/") + std::to_string(fd)).c_str());
 #endif
         int n = SEGMENT;
         n = std::max(std::min(n, script_len), 1);
