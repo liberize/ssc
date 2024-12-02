@@ -138,8 +138,9 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 auto p = s;
-                while (*p == '_' || isalnum(*p))
+                while (*p == '_' || isalnum(*p)) {
                     ++p;
+                }
                 if (*p == '=') {
                     std::string name(s, p - s);
                     setenv(name.c_str(), ++p, 1);
@@ -202,8 +203,9 @@ int main(int argc, char* argv[]) {
     for (int i = getpid(); l--; ) {
         i = (i * 1436856257) % 1436856259;
         sprintf(fifo_name, OBF("%s/ssc.%08x"), tmpdir(), i);
-        if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR))
+        if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR)) {
             break;
+        }
     }
     if (l < 0) {
         LOGE("failed to create fifo!");
@@ -298,7 +300,7 @@ int main(int argc, char* argv[]) {
         if (format == SHELL) {
             if (shell == "bash") {
                 // only bash 5+ support BASH_ARGV0
-                //dprintf(fd, OBF("BASH_ARGV0='%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
+                dprintf(fd, OBF("BASH_ARGV0='%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "zsh") {
                 dprintf(fd, OBF("0='%s'\n"), str_replace_all(argv[0], "'", "'\\''").c_str());
             } else if (shell == "fish") {
@@ -335,8 +337,9 @@ int main(int argc, char* argv[]) {
             check_debugger(false);
 #endif
 #ifdef __linux__
-            if (pipe_id > 0)
+            if (pipe_id > 0) {
                 check_pipe_reader(pipe_id);
+            }
 #endif
             auto seg_len = std::min(max_seg_len, script_len);
             //LOGD("decrypt segment. size=%d", seg_len);
