@@ -105,6 +105,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <scri
                            if a valid file path is specified, read message from the file
   -S, --segment            split script to multiple segments, default to 1
                            upon execution, decrypt and write script segment by segment, check for debugger before each segment
+  -c, --verify-checksum    verify crc32 checksum of the binary at runtime
   -v, --verbose            show debug messages
   -h, --help               display this help and exit
 ```
@@ -137,7 +138,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <scri
 
 For maximum source code protection, use these flags
 ```
-./ssc script binary -u -s -r -e file -S N
+./ssc script binary -u -s -r -e file -S N -c
 ```
 
 * All sensitive string literals are obfuscated with compile time obfuscation, so nothings useful will show with `strings` command
@@ -147,6 +148,7 @@ For maximum source code protection, use these flags
 * -r flag generates a random rc4 key (obfuscated), increases the difficulty to decrypt with key directly from binary
 * -e flag embeds the interpreter to binary (encrypted), prevents source dumping with forged interpreter
 * -S flag splits script to N segments, checks for debugger and pipe reader before writing each segment to pipe, so at most one segment of source code may be acquired by reading from pipe or dumping memory.
+* -c flag verifies crc32 checksum of the binary at runtime, prevents tampering of the binary file.
 
 ## Builtin variables
 

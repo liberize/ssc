@@ -27,6 +27,9 @@
 #ifdef MOUNT_SQUASHFS
 #include "mount.h"
 #endif
+#ifdef VERIFY_CHECKSUM
+#include "crc32.h"
+#endif
 
 enum ScriptFormat {
     SHELL,
@@ -44,6 +47,28 @@ int main(int argc, char* argv[]) {
     check_debugger(true);
 #endif
 
+    std::string exe_path = get_exe_path();
+    
+#ifdef VERIFY_CHECKSUM
+    static uint32_t cksum_data[2];  // use static to prevent compiler from optimizing
+    memcpy(cksum_data, "ssccksum", 8);
+#if __BYTE_ORDER == __BIG_ENDIAN
+    cksum_data[0] = swap(cksum_data[0]);
+    cksum_data[1] = swap(cksum_data[1]);
+#endif
+    std::vector<char> exe_data;
+    if (read_all(exe_path.c_str(), exe_data) != 0) {
+        return 1;
+    }
+    memcpy(&exe_data[cksum_data[0]], OBF("ssccksum"), 8);
+    auto crc32 = crc32_8bytes(exe_data.data(), exe_data.size(), 0);
+    if (crc32 != cksum_data[1]) {
+        LOGD("checksum not match! expect=%08x got=%08x", cksum_data[1], crc32);
+        return 1;
+    }
+    std::vector<char>().swap(exe_data);
+#endif
+
 #ifdef EXPIRE_DATE
     struct tm expire_tm;
     if (!strptime(OBF(STR(EXPIRE_DATE)), "%m/%d/%Y", &expire_tm)) {
@@ -57,7 +82,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     static AutoCleaner cleaner;
-    std::string exe_path = get_exe_path(), base_dir = dir_name(exe_path);
+    std::string base_dir = dir_name(exe_path);
     std::string interpreter_path, extract_dir, mount_dir;
 
 #if defined(INTERPRETER)

@@ -1,8 +1,10 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <fcntl.h>
 #include <ftw.h>
 #if defined(__linux__)
 #include <dirent.h>
@@ -58,6 +60,29 @@ FORCE_INLINE std::string str_replace_all(std::string str, const std::string& fro
         start_pos += to.length();
     }
     return str;
+}
+
+FORCE_INLINE int read_all(const char* path, std::vector<char>& buf) {
+    auto fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        LOGE("failed to open file. path=%s", path);
+        return -1;
+    }
+    auto size = lseek(fd, 0, SEEK_END);
+    if (size == -1) {
+        LOGE("failed to seek to end of file. path=%s", path);
+        close(fd);
+        return -1;
+    }
+    lseek(fd, 0, SEEK_SET);
+    buf.resize(size);
+    if (read(fd, buf.data(), size) != size) {
+        LOGE("failed to read file. path=%s", path);
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return 0;
 }
 
 static int _remove_file(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
