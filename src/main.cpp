@@ -52,10 +52,10 @@ int main(int argc, char* argv[]) {
 #ifdef VERIFY_CHECKSUM
     static uint32_t cksum_data[2];  // use static to prevent compiler from optimizing
     memcpy(cksum_data, "ssccksum", 8);
-#if __BYTE_ORDER == __BIG_ENDIAN
-    cksum_data[0] = swap(cksum_data[0]);
-    cksum_data[1] = swap(cksum_data[1]);
-#endif
+    if (is_big_endian()) {
+        cksum_data[0] = byteswap32(cksum_data[0]);
+        cksum_data[1] = byteswap32(cksum_data[1]);
+    }
     std::vector<char> exe_data;
     if (read_all(exe_path.c_str(), exe_data) != 0) {
         return 1;
