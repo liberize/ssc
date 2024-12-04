@@ -71,7 +71,7 @@ ssize_t get_elf_size(const char *path) {
 #if   __BYTE_ORDER == __LITTLE_ENDIAN
     bswap = ehdr.e_ident[EI_DATA] != ELFDATA2LSB;
 #elif __BYTE_ORDER == __BIG_ENDIAN
-    bswap = ehdr.e_ident[EI_DATA] != ELFDATA2LSB;
+    bswap = ehdr.e_ident[EI_DATA] != ELFDATA2MSB;
 #else
 #error "Unknown machine endian"
 #endif

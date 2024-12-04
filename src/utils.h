@@ -23,6 +23,11 @@
 #define LOGD(fmt, ...)  /* fprintf(stdout, OBF(fmt "\n"), ##__VA_ARGS__) */
 #define LOGE(fmt, ...)  fprintf(stderr, OBF(fmt "\n"), ##__VA_ARGS__)
 
+inline int is_big_endian() {
+    int i = 1;
+    return ! *((char*) &i);
+}
+
 FORCE_INLINE std::string get_exe_path() {
     char buf[PATH_MAX] = {0};
 #if defined(__linux__) || defined(__CYGWIN__)

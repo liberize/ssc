@@ -11,52 +11,25 @@
 #include <stdint.h>
 // size_t
 #include <cstddef>
+#include "utils.h"
 
-#ifndef __LITTLE_ENDIAN
-  #define __LITTLE_ENDIAN 1234
-#endif
-#ifndef __BIG_ENDIAN
-  #define __BIG_ENDIAN    4321
-#endif
 
-// define endianess and some integer data types
-#if defined(_MSC_VER) || defined(__MINGW32__)
-  // Windows always little endian
-  #define __BYTE_ORDER __LITTLE_ENDIAN
+static inline uint32_t byteswap32(uint32_t x) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_bswap32(x);
 #else
-  // defines __BYTE_ORDER as __LITTLE_ENDIAN or __BIG_ENDIAN
-  #include <sys/param.h>
+  return (x >> 24) |
+        ((x >>  8) & 0x0000FF00) |
+        ((x <<  8) & 0x00FF0000) |
+          (x << 24);
 #endif
-
-// abort if byte order is undefined
-#if !defined(__BYTE_ORDER)
-#error undefined byte order, compile with -D__BYTE_ORDER=1234 (if little endian) or -D__BYTE_ORDER=4321 (big endian)
-#endif
-
-namespace
-{
-#if __BYTE_ORDER == __BIG_ENDIAN
-  /// swap endianess
-  static inline uint32_t swap(uint32_t x)
-  {
-  #if defined(__GNUC__) || defined(__clang__)
-    return __builtin_bswap32(x);
-  #else
-    return (x >> 24) |
-          ((x >>  8) & 0x0000FF00) |
-          ((x <<  8) & 0x00FF0000) |
-           (x << 24);
-  #endif
-  }
-#endif
-} // anonymous namespace
+}
 
 // //////////////////////////////////////////////////////////
 // constants
 
 /// look-up table, already declared above
-const uint32_t Crc32Lookup[8][256] =
-{
+static const uint32_t Crc32Lookup[8][256] = {
   {
     // note: the first number of every second row corresponds to the half-byte look-up table !
     0x00000000,0x77073096,0xEE0E612C,0x990951BA,0x076DC419,0x706AF48F,0xE963A535,0x9E6495A3,
@@ -341,39 +314,39 @@ const uint32_t Crc32Lookup[8][256] =
 
 
 /// compute CRC32 (Slicing-by-8 algorithm)
-uint32_t crc32_8bytes(const void* data, size_t length, uint32_t previousCrc32)
-{
+uint32_t crc32_8bytes(const void* data, size_t length, uint32_t previousCrc32) {
   uint32_t crc = ~previousCrc32; // same as previousCrc32 ^ 0xFFFFFFFF
   const uint32_t* current = (const uint32_t*) data;
 
   // process eight bytes at once (Slicing-by-8)
-  while (length >= 8)
-  {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    uint32_t one = *current++ ^ swap(crc);
-    uint32_t two = *current++;
-    crc = Crc32Lookup[0][ two      & 0xFF] ^
-          Crc32Lookup[1][(two>> 8) & 0xFF] ^
-          Crc32Lookup[2][(two>>16) & 0xFF] ^
-          Crc32Lookup[3][(two>>24) & 0xFF] ^
-          Crc32Lookup[4][ one      & 0xFF] ^
-          Crc32Lookup[5][(one>> 8) & 0xFF] ^
-          Crc32Lookup[6][(one>>16) & 0xFF] ^
-          Crc32Lookup[7][(one>>24) & 0xFF];
-#else
-    uint32_t one = *current++ ^ crc;
-    uint32_t two = *current++;
-    crc = Crc32Lookup[0][(two>>24) & 0xFF] ^
-          Crc32Lookup[1][(two>>16) & 0xFF] ^
-          Crc32Lookup[2][(two>> 8) & 0xFF] ^
-          Crc32Lookup[3][ two      & 0xFF] ^
-          Crc32Lookup[4][(one>>24) & 0xFF] ^
-          Crc32Lookup[5][(one>>16) & 0xFF] ^
-          Crc32Lookup[6][(one>> 8) & 0xFF] ^
-          Crc32Lookup[7][ one      & 0xFF];
-#endif
-
-    length -= 8;
+  if (is_big_endian()) {
+    while (length >= 8) {
+      uint32_t one = *current++ ^ byteswap32(crc);
+      uint32_t two = *current++;
+      crc = Crc32Lookup[0][ two      & 0xFF] ^
+            Crc32Lookup[1][(two>> 8) & 0xFF] ^
+            Crc32Lookup[2][(two>>16) & 0xFF] ^
+            Crc32Lookup[3][(two>>24) & 0xFF] ^
+            Crc32Lookup[4][ one      & 0xFF] ^
+            Crc32Lookup[5][(one>> 8) & 0xFF] ^
+            Crc32Lookup[6][(one>>16) & 0xFF] ^
+            Crc32Lookup[7][(one>>24) & 0xFF];
+      length -= 8;
+    }
+  } else {
+    while (length >= 8) {
+      uint32_t one = *current++ ^ crc;
+      uint32_t two = *current++;
+      crc = Crc32Lookup[0][(two>>24) & 0xFF] ^
+            Crc32Lookup[1][(two>>16) & 0xFF] ^
+            Crc32Lookup[2][(two>> 8) & 0xFF] ^
+            Crc32Lookup[3][ two      & 0xFF] ^
+            Crc32Lookup[4][(one>>24) & 0xFF] ^
+            Crc32Lookup[5][(one>>16) & 0xFF] ^
+            Crc32Lookup[6][(one>> 8) & 0xFF] ^
+            Crc32Lookup[7][ one      & 0xFF];
+      length -= 8;
+    }
   }
 
   const uint8_t* currentChar = (const uint8_t*) current;
