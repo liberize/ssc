@@ -12,6 +12,8 @@
 #include <mach-o/dyld.h>
 #elif defined(__FreeBSD__)
 #include <sys/sysctl.h>
+#elif defined(__CYGWIN__)
+#include <Windows.h>
 #endif
 #include "obfuscate.h"
 
@@ -30,7 +32,7 @@ inline int is_big_endian() {
 
 FORCE_INLINE std::string get_exe_path() {
     char buf[PATH_MAX] = {0};
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__linux__)
     int size = sizeof(buf);
     size = readlink(OBF("/proc/self/exe"), buf, size);
     return size == -1 ? std::string() : std::string(buf, size);
@@ -41,6 +43,8 @@ FORCE_INLINE std::string get_exe_path() {
     size_t size = sizeof(buf);
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, getpid() };
     return sysctl(mib, 4, buf, &size, nullptr, 0) ? std::string() : std::string(buf);
+#elif defined(__CYGWIN__)
+    return !GetModuleFileNameA(NULL, buf, sizeof(buf)) ? std::string() : std::string(buf);
 #else
     #error unsupported operating system!
 #endif

@@ -177,7 +177,7 @@ if [ -n "$VERIFY_CHECKSUM" ]; then
   echo '=> build crc32 tool...'
   g++ -std=$CXX_STANDARD -w "$DIR/crc32.cpp" -o crc32 || exit 1
   echo '=> write checksum to binary...'
-  OFFSET="$(LC_ALL=C awk -v RS='ssccksum' '{print length($0); exit}' <"$2")"   # grep -abo is not portable
+  OFFSET="$(grep -abo ssccksum "$2" | grep -o '^[0-9]*')"
   CKSUM="$(./crc32 "$2")"
   #echo "offset=$OFFSET cksum=$CKSUM"
   perl -e "open(my \$fh,'+<','$2'); seek(\$fh,$OFFSET,0); print \$fh pack('V',$OFFSET),pack('V',$CKSUM)"
