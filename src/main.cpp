@@ -42,6 +42,14 @@ enum ScriptFormat {
     LUA,
 };
 
+#ifdef VERIFY_CHECKSUM
+DISABLE_OPTIMIZATION FORCE_INLINE uint32_t* get_cksum_data() {
+    static uint32_t cksum_data[2];
+    memcpy(cksum_data, "ssccksum", 8);
+    return cksum_data;
+}
+#endif
+
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
     check_debugger(true);
@@ -50,8 +58,7 @@ int main(int argc, char* argv[]) {
     std::string exe_path = get_exe_path();
     
 #ifdef VERIFY_CHECKSUM
-    static uint32_t cksum_data[2];  // use static to prevent compiler from optimizing
-    memcpy(cksum_data, "ssccksum", 8);
+    auto cksum_data = get_cksum_data();
     if (is_big_endian()) {
         cksum_data[0] = byteswap32(cksum_data[0]);
         cksum_data[1] = byteswap32(cksum_data[1]);

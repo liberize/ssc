@@ -22,6 +22,14 @@
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
+#if defined(__GNUC__)
+#define DISABLE_OPTIMIZATION __attribute__((optimize("O0")))
+#elif defined(__clang__)
+#define DISABLE_OPTIMIZATION [[clang::optnone]]
+#else
+#define DISABLE_OPTIMIZATION
+#endif
+
 #define LOGD(fmt, ...)  /* fprintf(stdout, OBF(fmt "\n"), ##__VA_ARGS__) */
 #define LOGE(fmt, ...)  fprintf(stderr, OBF(fmt "\n"), ##__VA_ARGS__)
 
