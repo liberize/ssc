@@ -22,10 +22,10 @@
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
-#if defined(__GNUC__)
-#define DISABLE_OPTIMIZATION __attribute__((optimize("O0")))
-#elif defined(__clang__)
+#if defined(__clang__)
 #define DISABLE_OPTIMIZATION [[clang::optnone]]
+#elif defined(__GNUC__)
+#define DISABLE_OPTIMIZATION __attribute__((optimize("O0")))
 #else
 #define DISABLE_OPTIMIZATION
 #endif
