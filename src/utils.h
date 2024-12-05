@@ -33,7 +33,7 @@
 #define LOGD(fmt, ...)  /* fprintf(stdout, OBF(fmt "\n"), ##__VA_ARGS__) */
 #define LOGE(fmt, ...)  fprintf(stderr, OBF(fmt "\n"), ##__VA_ARGS__)
 
-inline int is_big_endian() {
+FORCE_INLINE int is_big_endian() {
     int i = 1;
     return ! *((char*) &i);
 }
