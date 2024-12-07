@@ -78,6 +78,15 @@ case "$(uname -s)" in
   *)            echo "unsupported system"; exit 1;;
 esac
 
+if [ "$SYSTEM" = Mac -a "$STATIC" = 1 ]; then
+  echo "Linking statically is not supported on macOS. Please remove -s flag."
+  exit 1
+fi
+if [ "$SYSTEM" != Linux -a -n "$SQUASHFS_DATA" ]; then
+  echo "Mounting squashfs is only supported on Linux. Please remove -M flag."
+  exit 1
+fi
+
 if [ "$SYSTEM" = Termux ]; then
   LDFLAGS="$LDFLAGS -landroid-wordexp"
   if [ "$STATIC" = 1 ]; then
@@ -129,7 +138,7 @@ b2o() {
 # cleanup on exit
 trap "rm -f \"$1.cpp\" \"$1.tmp\" i.o i s.o s rc4 crc32 d.sfs" EXIT
 
-perl -pe 's/^\xEF\xBB\xBF//; s/\r\n/\n/' "$1" >"$1.tmp"
+perl -pe 's/^\xEF\xBB\xBF//; s/\r\n/\n/' "$1" >"$1.tmp" || exit 1
 if [ "$(head -c2 "$1.tmp")" = "#!" ]; then
   SHEBANG="$(head -n1 "$1.tmp")"
   SHEBANG_LEN="$(head -n1 "$1.tmp" | wc -c)"
