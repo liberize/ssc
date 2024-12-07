@@ -99,7 +99,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-n name] [-d date] [-m msg] [-
                            linux only, works like AppImage. if a directory is specified, create squashfs from it
   -0, --fix-argv0          try to fix $0, may not work
                            if it doesn't work or causes problems, try -n flag or use $SSC_ARGV0 instead
-  -n, --ps-name            change script path in ps output
+  -n, --ps-name            change script path in ps output, may contain 'XXXXXX' which will be replaced with a random string
                            upon execution, create a symlink to real path and pass it to the interperter
   -d, --expire-date        expire date, for example, 11/30/2023
   -m, --expire-message     expire message, default to 'script has expired!'

@@ -97,7 +97,7 @@ ssc本身并不是一个编译器，比如cc，它会生成包含脚本代码的
                            仅适用于Linux，类似AppImage。如果指定的是目录，从这个目录创建squashfs文件
   -0, --fix-argv0          尝试修复$0，可能不起作用
                            如果不起作用或造成问题，请尝试使用-n选项或使用$SSC_ARGV0代替$0
-  -n, --ps-name            更改ps输出中的脚本路径
+  -n, --ps-name            更改ps输出中的脚本路径，可包含XXXXXX，运行时替换为随机字符串
                            在执行时，创建一个指向真实路径的符号链接并将这个链接传递给解释器
   -d, --expire-date        过期日期，例如 11/30/2023
   -m, --expire-message     过期提示，默认为 script has expired!

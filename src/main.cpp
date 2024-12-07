@@ -13,6 +13,7 @@
 #include <string>
 #include <iterator>
 #include <algorithm>
+#include <random>
 #include "obfuscate.h"
 #include "utils.h"
 #include "embed.h"
@@ -266,14 +267,24 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef PS_NAME
-    if (is_symlink(OBF(STR(PS_NAME)))) {
-        unlink(OBF(STR(PS_NAME)));
+    std::string link_name(OBF(STR(PS_NAME)));
+    pos = link_name.find("XXXXXX");
+    if (pos != std::string::npos) {
+        const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        std::mt19937 gen(std::random_device{}());
+        std::uniform_int_distribution<> dist(0, strlen(chars) - 1);
+        for (; pos < link_name.size() && link_name[pos] == 'X'; pos++) {
+            link_name[pos] = chars[dist(gen)];
+        }
     }
-    if (symlink(path.c_str(), OBF(STR(PS_NAME))) != 0) {
-        LOGE("failed to create symlink! path=" STR(PS_NAME) " err=`%s`", strerror(errno));
+    if (is_symlink(link_name.c_str())) {
+        unlink(link_name.c_str());
+    }
+    if (symlink(path.c_str(), link_name.c_str()) != 0) {
+        LOGE("failed to create symlink! path=%s err=`%s`", link_name.c_str(), strerror(errno));
         return 5;
     }
-    path = OBF(STR(PS_NAME));
+    path = std::move(link_name);
     cleaner.add(path);
 #endif
 
