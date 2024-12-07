@@ -82,7 +82,8 @@ Upon execution, the binary will call real script interpreter (systemwide, bundle
 More options
 
 ```
-Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-d date] [-m msg] [-S N] <script> <binary>
+Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-n name] [-d date] [-m msg] [-S N] [-c] <script> <binary>
+
   -u, --untraceable        make untraceable binary
                            enable debugger detection, abort program when debugger is found
   -s, --static             make static binary
