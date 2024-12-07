@@ -367,9 +367,6 @@ int main(int argc, char* argv[]) {
         write(fd, "\n", 1);
 #endif
 
-#ifdef __linux__
-        auto pipe_id = get_pipe_id((OBF("/proc/self/fd/") + std::to_string(fd)).c_str());
-#endif
         int n = SEGMENT;
         n = std::max(std::min(n, script_len), 1);
         int max_seg_len = (script_len + n - 1) / n;
@@ -380,9 +377,7 @@ int main(int argc, char* argv[]) {
             check_debugger(false);
 #endif
 #ifdef __linux__
-            if (pipe_id > 0) {
-                check_pipe_reader(pipe_id);
-            }
+            check_pipe_reader(fd);
 #endif
             auto seg_len = std::min(max_seg_len, script_len);
             //LOGD("decrypt segment. size=%d", seg_len);

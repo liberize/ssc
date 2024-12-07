@@ -145,22 +145,24 @@ FORCE_INLINE const char* tmpdir() {
 }
 
 #ifdef __linux__
-FORCE_INLINE unsigned long get_pipe_id(const char *path) {
-    char dst[PATH_MAX] = {0};
-    if (readlink(path, dst, sizeof(dst)) < 0)
-        return 0;
-    if (strncmp(dst, OBF("pipe:["), 6) != 0)
-        return 0;
-    return strtoul(dst + 6, nullptr, 10);
-}
+FORCE_INLINE void check_pipe_reader(int fd) {
+    static auto mypid = getpid(), ppid = getppid();
+    static char pipe_dst[128] = {0};
 
-FORCE_INLINE void check_pipe_reader(unsigned long pipe_id) {
-    auto mypid = getpid(), ppid = getppid();
+    char path[PATH_MAX];
+    int size = 0;
+    if (!pipe_dst[0]) {
+        snprintf(path, sizeof(path), OBF("/proc/self/fd/%d"), fd);
+        if ((size = readlink(path, pipe_dst, sizeof(pipe_dst) - 1)) < 0)
+            return;
+        pipe_dst[size] = '\0';
+    }
 
     auto proc_dir = opendir(OBF("/proc"));
     if (!proc_dir)
         return;
 
+    char link_dst[PATH_MAX];
     struct dirent *entry;
     while ((entry = readdir(proc_dir))) {
         if (entry->d_type != DT_DIR)
@@ -172,18 +174,20 @@ FORCE_INLINE void check_pipe_reader(unsigned long pipe_id) {
         if (pid == mypid || pid == ppid)
             continue;
         
-        char buf[PATH_MAX];
-        auto len = snprintf(buf, sizeof(buf), OBF("/proc/%s/fd"), entry->d_name);
-        auto fd_dir = opendir(buf);
+        auto len = snprintf(path, sizeof(path), OBF("/proc/%s/fd"), entry->d_name);
+        auto fd_dir = opendir(path);
         if (!fd_dir)
             continue;
-        buf[len++] = '/';
+        path[len++] = '/';
         
         while ((entry = readdir(fd_dir))) {
             if (entry->d_type != DT_LNK)
                 continue;
-            strcpy(buf + len, entry->d_name);
-            if (pipe_id == get_pipe_id(buf)) {
+            strcpy(path + len, entry->d_name);
+            if ((size = readlink(path, link_dst, sizeof(link_dst) - 1)) < 0)
+                continue;
+            link_dst[size] = '\0';
+            if (strcmp(link_dst, pipe_dst) == 0) {
                 LOGD("process %lu is reading our pipe!", pid);
                 sleep(3);
                 exit(1);
