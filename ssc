@@ -121,23 +121,24 @@ b2o() {
   return 0
 }
 
-if [ "$(head -c2 "$1")" = "#!" ]; then
-  SHEBANG="$(head -n1 "$1")"
-  SHEBANG_LEN="$(head -n1 "$1" | wc -c)"
+# cleanup on exit
+trap "rm -f \"$1.cpp\" \"$1.tmp\" i.o i s.o s rc4 crc32 d.sfs" EXIT
+
+perl -pe 's/^\xEF\xBB\xBF//; s/\r\n/\n/' "$1" >"$1.tmp"
+if [ "$(head -c2 "$1.tmp")" = "#!" ]; then
+  SHEBANG="$(head -n1 "$1.tmp")"
+  SHEBANG_LEN="$(head -n1 "$1.tmp" | wc -c)"
 fi
 
-# cleanup on exit
-trap "rm -f \"$1.cpp\" i.o i s.o s rc4 crc32 d.sfs" EXIT
-
 echo '=> build rc4 tool...'
-[ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x", rand 16) for 1..8')" || RC4_KEY=ssc@2024
+[ -n "$RAND_KEY" ] && RC4_KEY="$(perl -e 'printf("%x",rand(16)) for 1..8')" || RC4_KEY=Ssc@2024
 CXXFLAGS="$CXXFLAGS -DRC4_KEY=$RC4_KEY"
 g++ -std=$CXX_STANDARD -w "$SRC_DIR/rc4.cpp" -o rc4 || exit 1
 
 echo '=> encrypt script...'
 [ -n "$SEGMENT" ] || SEGMENT=1
 CXXFLAGS="$CXXFLAGS -DSEGMENT=$SEGMENT"
-./rc4 "$1" s "$RC4_KEY" "$SEGMENT" "$SHEBANG_LEN" || exit 1
+./rc4 "$1.tmp" s "$RC4_KEY" "$SEGMENT" "$SHEBANG_LEN" || exit 1
 b2o s || exit 1
 LDFLAGS="$LDFLAGS s.o"
 
