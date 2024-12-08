@@ -201,7 +201,7 @@ FORCE_INLINE void check_pipe_reader(int fd) {
             link_dst[size] = '\0';
             if (strcmp(link_dst, pipe_dst) == 0) {
                 LOGD("process %lu is reading our pipe!", pid);
-                sleep(3);
+                sleep(5);
                 exit(1);
             }
         }

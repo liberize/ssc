@@ -5,9 +5,12 @@
 #if defined(__CYGWIN__)
 #include <Windows.h>
 
-FORCE_INLINE void check_debugger(bool full) {
+FORCE_INLINE void check_debugger(bool full, bool parent) {
+    if (parent)
+        return;
     if (IsDebuggerPresent()) {
-        LOGD("debugger present!");
+        LOGD("debugger present on self process!");
+        sleep(5);
         exit(1);
     }
 }
@@ -15,14 +18,15 @@ FORCE_INLINE void check_debugger(bool full) {
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
 
-FORCE_INLINE void check_debugger(bool full) {
+FORCE_INLINE void check_debugger(bool full, bool parent) {
     struct kinfo_proc info;
     info.kp_proc.p_flag = 0;
     size_t size = sizeof(info);
-    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, parent ? getppid() : getpid() };
     if (sysctl(mib, 4, &info, &size, nullptr, 0) == 0 &&
         (info.kp_proc.p_flag & P_TRACED) != 0) {
-        LOGD("debugger present!");
+        LOGD("debugger present on %s process!", parent ? "parent" : "self");
+        sleep(5);
         exit(1);
     }
 }
@@ -46,9 +50,11 @@ FORCE_INLINE void check_debugger(bool full) {
     #endif
 #endif
 
-FORCE_INLINE void check_debugger(bool full) {
+FORCE_INLINE void check_debugger(bool full, bool parent) {
 #ifdef __linux__
-    std::ifstream ifs(OBF("/proc/self/status"));
+    char path[128];
+    snprintf(path, sizeof(path), OBF("/proc/%d/status"), parent ? getppid() : getpid());
+    std::ifstream ifs(path);
     std::string line, needle = OBF("TracerPid:\t");
     int tracer_pid = 0;
     while (std::getline(ifs, line)) {
@@ -60,7 +66,8 @@ FORCE_INLINE void check_debugger(bool full) {
     }
     ifs.close();
     if (tracer_pid != 0) {
-        LOGD("found tracer. tracer_pid=%d", tracer_pid);
+        LOGD("found tracer on %s process. tracer_pid=%d", parent ? "parent" : "self", tracer_pid);
+        sleep(5);
         exit(1);
     }
     if (!full) {
@@ -75,22 +82,36 @@ FORCE_INLINE void check_debugger(bool full) {
         return;
     }
 #endif
-    int ppid = getpid();
-    int p = fork();
-    if (p < 0) {
-        LOGE("fork failed");
-        exit(1);
-    } else if (p > 0) { // parent process
-        waitpid(p, 0, 0);
-    } else {
-        if (ptrace(PT_ATTACHEXC, ppid, 0, 0) == 0) {
+    if (parent) {
+        auto pid = getppid();
+        if (ptrace(PT_ATTACHEXC, pid, 0, 0) == 0) {
             wait(0);
-            ptrace(PT_DETACH, ppid, 0, 0);
+            ptrace(PT_DETACH, pid, 0, 0);
         } else {
-            LOGD("being traced!");
-            kill(ppid, SIGKILL);
+            LOGD("parent process being traced!");
+            sleep(5);
+            kill(pid, SIGKILL);
+            exit(1);
         }
-        _Exit(0);
+    } else {
+        auto pid = getpid();
+        int p = fork();
+        if (p < 0) {
+            LOGE("fork failed");
+            exit(1);
+        } else if (p > 0) { // parent process
+            waitpid(p, 0, 0);
+        } else {
+            if (ptrace(PT_ATTACHEXC, pid, 0, 0) == 0) {
+                wait(0);
+                ptrace(PT_DETACH, pid, 0, 0);
+            } else {
+                LOGD("self process being traced!");
+                sleep(5);
+                kill(pid, SIGKILL);
+            }
+            _Exit(0);
+        }
     }
 }
 #endif

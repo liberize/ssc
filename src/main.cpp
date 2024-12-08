@@ -54,7 +54,7 @@ DISABLE_OPTIMIZATION FORCE_INLINE uint32_t* get_cksum_data() {
 
 int main(int argc, char* argv[]) {
 #ifdef UNTRACEABLE
-    check_debugger(true);
+    check_debugger(true, false);
 #endif
 
     std::string exe_path = get_exe_path();
@@ -394,7 +394,8 @@ int main(int argc, char* argv[]) {
         int rc4_key_len = strlen(rc4_key);
         while (script_len > 0) {
 #ifdef UNTRACEABLE
-            check_debugger(false);
+            check_debugger(false, false);
+            check_debugger(false, true);
 #endif
 #ifdef __linux__
             check_pipe_reader(fd);
