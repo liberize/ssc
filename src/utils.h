@@ -70,6 +70,18 @@ FORCE_INLINE bool str_ends_with(const std::string& s, const std::string& e) {
     return s.size() >= e.size() && s.compare(s.size() - e.size(), e.size(), e) == 0;
 }
 
+FORCE_INLINE bool str_contains_word(const std::string& s, const std::string& w) {
+    auto p = s.find(w);
+    if (p == std::string::npos)
+        return false;
+    if (p && isalpha(s[p-1]))
+        return false;
+    p += w.size();
+    if (p < s.size() && isalpha(s[p]))
+        return false;
+    return true;
+}
+
 FORCE_INLINE std::string str_replace_all(std::string str, const std::string& from, const std::string& to) {
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {

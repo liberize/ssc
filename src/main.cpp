@@ -33,6 +33,7 @@
 #endif
 
 enum ScriptFormat {
+    UNKNOWN,
     SHELL,
     PYTHON,
     PERL,
@@ -106,6 +107,7 @@ int main(int argc, char* argv[]) {
 #elif defined(MOUNT_SQUASHFS)
     base_dir = mount_dir = mount_squashfs();
 #endif
+
     setenv(OBF("SSC_EXTRACT_DIR"), extract_dir.c_str(), 1);
     setenv(OBF("SSC_MOUNT_DIR"), mount_dir.c_str(), 1);
     setenv(OBF("SSC_EXECUTABLE_PATH"), exe_path.c_str(), 1);
@@ -114,21 +116,8 @@ int main(int argc, char* argv[]) {
     std::string file_name = OBF(R"SSC(SCRIPT_FILE_NAME)SSC");
     std::string shebang = OBF(R"SSC(SCRIPT_SHEBANG)SSC");
 
-#ifdef __APPLE__
-    auto buf = read_data_sect("s");
-    if (buf.empty())
-        exit(1);
-    char* script_data =  buf.data();
-    int script_len = buf.size();
-#else
-    extern char _binary_s_start;
-    extern char _binary_s_end;
-    char* script_data = &_binary_s_start;
-    int script_len = &_binary_s_end - &_binary_s_start;
-#endif
-
     // detect script format by file name suffix
-    ScriptFormat format = SHELL;
+    ScriptFormat format = UNKNOWN;
     std::string shell("sh");
     auto pos = file_name.find_last_of(".");
     if (pos != std::string::npos) {
@@ -158,55 +147,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::string> args;
     // parse shebang
-    if (!shebang.empty()) {
-        wordexp_t wrde;
-        if (wordexp(shebang.c_str() + 2, &wrde, 0) != 0) {
-            LOGE("failed to parse shebang!");
-            return 1;
-        }
-        for (size_t i = 0; i < wrde.we_wordc; i++) {
-            auto s = wrde.we_wordv[i];
-            if (args.empty()) {
-                if (!strcmp(s, "env") || !strcmp(s, "/usr/bin/env")) {
-                    continue;
-                }
-                auto p = s;
-                while (*p == '_' || isalnum(*p)) {
-                    ++p;
-                }
-                if (*p == '=') {
-                    std::string name(s, p - s);
-                    setenv(name.c_str(), ++p, 1);
-                    continue;
-                }
-            }
-            args.emplace_back(s);
-        }
-        wordfree(&wrde);
-
-        // detect script format by shebang
-        if (!args.empty()) {
-            if (str_ends_with(args[0], "sh")) {
-                format = SHELL;
-                shell = base_name(args[0]);
-            } else if (args[0].find("python") != std::string::npos || args[0].find("conda") != std::string::npos) {
-                format = PYTHON;
-            } else if (args[0].find("perl") != std::string::npos) {
-                format = PERL;
-            } else if (args[0].find("node") != std::string::npos) {
-                format = JAVASCRIPT;
-            } else if (args[0].find("ruby") != std::string::npos) {
-                format = RUBY;
-            } else if (args[0].find("php") != std::string::npos) {
-                format = PHP;
-            } else if (args[0].find("Rscript") != std::string::npos) {
-                format = R;
-            } else if (args[0].find("lua") != std::string::npos) {
-                format = LUA;
-            }
-        }
-    }
-    if (args.empty()) {
+    if (shebang.empty()) {
         switch (format) {
             case SHELL:      args.emplace_back(shell); break;
             case PYTHON:     args.emplace_back("python"); break;
@@ -216,7 +157,73 @@ int main(int argc, char* argv[]) {
             case PHP:        args.emplace_back("php"); break;
             case R:          args.emplace_back("Rscript"); break;
             case LUA:        args.emplace_back("lua"); break;
-            default:         LOGE("unknown format!"); return 4;
+            default:         break;
+        }
+    } else {
+        wordexp_t wrde;
+        if (wordexp(shebang.c_str() + 2, &wrde, 0) != 0) {
+            LOGE("failed to parse shebang!");
+            return 1;
+        }
+        bool env = wrde.we_wordc && (!strcmp(wrde.we_wordv[0], "env") || !strcmp(wrde.we_wordv[0], "/usr/bin/env"));
+        for (size_t i = env; i < wrde.we_wordc; i++) {
+            auto s = wrde.we_wordv[i];
+            if (!args.empty()) {
+                args.emplace_back(s);
+                continue;
+            }
+            if (env && s[0] == '-') {
+                if (!strcmp(s, "-S") || !strcmp(s, "--split-string")) {
+                    // do nothing
+                } else if (!strcmp(s, "-i") || !strcmp(s, "-") || !strcmp(s, "--ignore-environment")) {
+                    extern char **environ;
+                    environ = (char**) calloc(1, sizeof(*environ));
+                } else if ((!strcmp(s, "-C") || !strcmp(s, "--chdir")) && i + 1 < wrde.we_wordc) {
+                    chdir(wrde.we_wordv[++i]);
+                } else if (!strncmp(s, "--chdir=", 8)) {
+                    chdir(s + 8);
+                } else if ((!strcmp(s, "-u") || !strcmp(s, "--unset")) && i + 1 < wrde.we_wordc) {
+                    unsetenv(wrde.we_wordv[++i]);
+                } else if (!strncmp(s, "--unset=", 8)) {
+                    unsetenv(s + 8);
+                }
+                continue;
+            }
+            auto p = s;
+            while (*p == '_' || isalnum(*p)) {
+                ++p;
+            }
+            if (*p == '=') {
+                std::string name(s, p - s);
+                setenv(name.c_str(), ++p, 1);
+                continue;
+            }
+            args.emplace_back(s);
+        }
+        wordfree(&wrde);
+        if (args.empty()) {
+            LOGE("invalid shebang!");
+            return 1;
+        }
+
+        // detect script format by shebang
+        if (str_ends_with(args[0], "sh")) {
+            format = SHELL;
+            shell = base_name(args[0]);
+        } else if (str_contains_word(args[0], "python") || str_contains_word(args[0], "conda")) {
+            format = PYTHON;
+        } else if (str_contains_word(args[0], "perl")) {
+            format = PERL;
+        } else if (str_contains_word(args[0], "node") || str_contains_word(args[0], "deno") || str_contains_word(args[0], "bun")) {
+            format = JAVASCRIPT;
+        } else if (str_contains_word(args[0], "ruby")) {
+            format = RUBY;
+        } else if (str_contains_word(args[0], "php")) {
+            format = PHP;
+        } else if (str_contains_word(args[0], "Rscript")) {
+            format = R;
+        } else if (str_contains_word(args[0], "lua")) {
+            format = LUA;
         }
     }
     if (interpreter_path.empty()) {
@@ -365,6 +372,19 @@ int main(int argc, char* argv[]) {
 #else
         write(fd, shebang.c_str(), shebang.size());
         write(fd, "\n", 1);
+#endif
+
+#ifdef __APPLE__
+        auto buf = read_data_sect("s");
+        if (buf.empty())
+            exit(1);
+        char* script_data =  buf.data();
+        int script_len = buf.size();
+#else
+        extern char _binary_s_start;
+        extern char _binary_s_end;
+        char* script_data = &_binary_s_start;
+        int script_len = &_binary_s_end - &_binary_s_start;
 #endif
 
         int n = SEGMENT;
