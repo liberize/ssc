@@ -148,7 +148,7 @@ For maximum source code protection, use these flags
 * -s flag compiles a static binary, prevents function hook with LD_PRELOAD
 * -r flag generates a random rc4 key (obfuscated), increases the difficulty to decrypt with key directly from binary
 * -e flag embeds the interpreter to binary (encrypted), prevents source dumping with forged interpreter
-* -S flag splits script to N segments, checks for debugger and pipe reader before writing each segment to pipe, so at most one segment of source code may be acquired by reading from pipe or dumping memory.
+* -S flag splits script to N segments, checks for debugger and pipe reader before writing each segment to pipe, so at most one segment of source code may be acquired by reading from pipe or dumping memory. Use the largest N value possible unless the speed is unacceptably slow.
 * -c flag verifies crc32 checksum of the binary at runtime, prevents tampering of the binary file.
 
 ## Builtin variables
