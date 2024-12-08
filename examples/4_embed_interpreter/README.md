@@ -1,6 +1,6 @@
 # Embed an interpreter into the binary
 
-We can even embed the interpreter into our binary, and make a single-file dependency-free executable.
+We can embed the interpreter into our binary, and make a single-file dependency-free executable.
 
 Another benefit from embedding is enhanced source protection. Without embedding, users can easily retrieve your script code with a spoofed interpreter.
 
@@ -14,7 +14,7 @@ rm -rf "$SSC_EXTRACT_DIR"
 
 ## Example: bash-static
 
-`bash-static` is a static build of bash. It doesn't come with any dependencies, so it's easy to embed it to our app.
+`bash-static` is a static build of bash. It doesn't come with any dependencies, so it's suitable as an embedded interpreter.
 
 ```bash
 # download bash-static
@@ -24,7 +24,7 @@ tar -xvf data.tar.xz ./bin/bash-static
 mv ./bin/bash-static ./
 rm -rf ./bin data.tar.xz bash-static_5.2.15-2+b2_amd64.deb
 
-# use -s flag to make our binary static too
+# use -s flag to make a static binary
 ../../ssc ./test_bash_static.sh binary -s -e bash-static
 
 # test it
@@ -34,7 +34,7 @@ rm -f bash-static
 
 ## Example: busybox
 
-`busybox` provides several Unix utilities in a single executable file. We can make a completely dependency-free app with it.
+`busybox` provides several Unix utilities in a single executable file. We can make a completely dependency-free binary with it.
 
 ```bash
 # download busybox-static
@@ -44,7 +44,7 @@ tar -xvf data.tar.xz ./bin/busybox
 mv ./bin/busybox ./
 rm -rf ./bin data.tar.xz busybox-static_1.35.0-4+b3_amd64.deb data.tar.xz
 
-# use -s flag to make our binary static too
+# use -s flag to make a static binary
 ../../ssc ./test_busybox.sh binary -s -e busybox
 
 # test it

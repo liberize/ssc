@@ -1,4 +1,3 @@
 #!bash-static
 
-echo "\$@ is $@"
-echo "hello world"
+echo "bash version is $BASH_VERSION"

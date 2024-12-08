@@ -1,6 +1,6 @@
 # Embed an archive into the binary
 
-We can even embed an archive into our binary, and make a self-extracting dependency-free executable.
+We can embed an archive into our binary, and make a self-extracting dependency-free executable.
 
 To embed an archive, use `-E` flag. The archive may or may not contain an interpreter.
 
@@ -25,7 +25,7 @@ rm -rf python/lib/{*tcl*,thread*,Tix*,tk*}
 tar -zcvf cpython.tar.gz python
 rm -rf python
 
-# use -s flag to make our binary static
+# use -s flag to make a static binary
 ../../ssc ./test_python.sh binary -s -E cpython.tar.gz
 
 # test it

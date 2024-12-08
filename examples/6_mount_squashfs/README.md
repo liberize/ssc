@@ -2,7 +2,7 @@
 
 This is another way to pack some data into the binary and make a dependency-free executable. Same method is used by AppImage. Currently only availble on Linux.
 
-To embed a squashfs file, use `-M` flag. If a directory is specified, mksquashfs is called to create a squashfs file from the directory.
+To embed a squashfs file, use `-M` flag. If a directory is specified, `mksquashfs` is called to create a squashfs file from the directory.
 
 The squashfs file is directly appended to the binary, upon execution it will be mounted to /tmp/ssc/XXXXXX with FUSE. This method doesn't extract files, so it is generally faster than `-E` flag.
 
