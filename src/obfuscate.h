@@ -59,7 +59,6 @@ public:
     }
 
 private:
-
     char m_data[N]{};
 };
 
@@ -111,7 +110,6 @@ public:
     }
 
 private:
-
     // Local storage for the string. Call is_encrypted() to check whether or
     // not the string is currently obfuscated.
     char m_data[N];

@@ -31,38 +31,38 @@ typedef unsigned int  u32;
  * encryption/decryption.
  */
 FORCE_INLINE void rc4_skip(const u8 *key, size_t keylen, size_t skip,
-	      u8 *data, size_t data_len)
+          u8 *data, size_t data_len)
 {
-	u32 i, j, k;
-	u8 S[256], *pos;
-	size_t kpos;
-	/* Setup RC4 state */
-	for (i = 0; i < 256; i++)
-		S[i] = i;
-	j = 0;
-	kpos = 0;
-	for (i = 0; i < 256; i++) {
-		j = (j + S[i] + key[kpos]) & 0xff;
-		kpos++;
-		if (kpos >= keylen)
-			kpos = 0;
-		S_SWAP(i, j);
-	}
-	/* Skip the start of the stream */
-	i = j = 0;
-	for (k = 0; k < skip; k++) {
-		i = (i + 1) & 0xff;
-		j = (j + S[i]) & 0xff;
-		S_SWAP(i, j);
-	}
-	/* Apply RC4 to data */
-	pos = data;
-	for (k = 0; k < data_len; k++) {
-		i = (i + 1) & 0xff;
-		j = (j + S[i]) & 0xff;
-		S_SWAP(i, j);
-		*pos++ ^= S[(S[i] + S[j]) & 0xff];
-	}
+    u32 i, j, k;
+    u8 S[256], *pos;
+    size_t kpos;
+    /* Setup RC4 state */
+    for (i = 0; i < 256; i++)
+        S[i] = i;
+    j = 0;
+    kpos = 0;
+    for (i = 0; i < 256; i++) {
+        j = (j + S[i] + key[kpos]) & 0xff;
+        kpos++;
+        if (kpos >= keylen)
+            kpos = 0;
+        S_SWAP(i, j);
+    }
+    /* Skip the start of the stream */
+    i = j = 0;
+    for (k = 0; k < skip; k++) {
+        i = (i + 1) & 0xff;
+        j = (j + S[i]) & 0xff;
+        S_SWAP(i, j);
+    }
+    /* Apply RC4 to data */
+    pos = data;
+    for (k = 0; k < data_len; k++) {
+        i = (i + 1) & 0xff;
+        j = (j + S[i]) & 0xff;
+        S_SWAP(i, j);
+        *pos++ ^= S[(S[i] + S[j]) & 0xff];
+    }
 }
 /**
  * rc4 - XOR RC4 stream to given data
@@ -76,5 +76,5 @@ FORCE_INLINE void rc4_skip(const u8 *key, size_t keylen, size_t skip,
  */
 FORCE_INLINE void rc4(u8 *buf, size_t len, const u8 *key, size_t key_len)
 {
-	rc4_skip(key, key_len, 0, buf, len);
+    rc4_skip(key, key_len, 0, buf, len);
 }
