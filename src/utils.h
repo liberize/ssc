@@ -66,6 +66,10 @@ FORCE_INLINE std::string base_name(const std::string& s) {
     return s.substr(s.find_last_of("\\/") + 1);
 }
 
+FORCE_INLINE bool str_starts_with(const std::string& s, const std::string& e) {
+    return s.size() >= e.size() && s.compare(0, e.size(), e) == 0;
+}
+
 FORCE_INLINE bool str_ends_with(const std::string& s, const std::string& e) {
     return s.size() >= e.size() && s.compare(s.size() - e.size(), e.size(), e) == 0;
 }
@@ -180,7 +184,7 @@ FORCE_INLINE void check_pipe_reader(int fd) {
         if (entry->d_type != DT_DIR)
             continue;
         char *end = nullptr;
-        auto pid = strtoul(entry->d_name, &end, 10);
+        auto pid = strtol(entry->d_name, &end, 10);
         if (!pid || *end)
             continue;
         if (pid == mypid || pid == ppid)

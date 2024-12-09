@@ -56,11 +56,10 @@ FORCE_INLINE void check_debugger(bool full, bool parent) {
     snprintf(path, sizeof(path), OBF("/proc/%d/status"), parent ? getppid() : getpid());
     std::ifstream ifs(path);
     std::string line, needle = OBF("TracerPid:\t");
-    int tracer_pid = 0;
+    pid_t tracer_pid = 0;
     while (std::getline(ifs, line)) {
-        auto idx = line.find(needle);
-        if (idx != std::string::npos) {
-            tracer_pid = atoi(line.c_str() + idx + needle.size());
+        if (str_starts_with(line, needle)) {
+            tracer_pid = atoi(line.c_str() + needle.size());
             break;
         }
     }
