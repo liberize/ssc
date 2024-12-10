@@ -152,7 +152,7 @@ g++ -std=$CXX_STANDARD -w "$SRC_DIR/rc4.cpp" -o rc4 || exit 1
 echo '=> encrypt script...'
 [ -n "$SEGMENT" ] || SEGMENT=1
 CXXFLAGS="$CXXFLAGS -DSEGMENT=$SEGMENT"
-./rc4 "$1.tmp" s "$RC4_KEY" "$SEGMENT" "$SHEBANG_LEN" || exit 1
+./rc4 "$1.tmp" s "$RC4_KEY" "$SHEBANG_LEN" || exit 1
 b2o s || exit 1
 LDFLAGS="$LDFLAGS s.o"
 

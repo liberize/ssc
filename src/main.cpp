@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
         if (str_ends_with(args[0], "sh")) {
             format = SHELL;
             shell = base_name(args[0]);
-        } else if (str_contains_word(args[0], "python") || str_contains_word(args[0], "conda")) {
+        } else if (str_contains_word(args[0], "python")) {
             format = PYTHON;
         } else if (str_contains_word(args[0], "perl")) {
             format = PERL;
@@ -387,9 +387,9 @@ int main(int argc, char* argv[]) {
         int script_len = &_binary_s_end - &_binary_s_start;
 #endif
 
-        int n = SEGMENT;
-        n = std::max(std::min(n, script_len), 1);
+        int n = std::max(std::min(SEGMENT, script_len), 1);
         int max_seg_len = (script_len + n - 1) / n;
+        int offset = 0;
         const char* rc4_key = OBF(STR(RC4_KEY));
         int rc4_key_len = strlen(rc4_key);
         while (script_len > 0) {
@@ -402,11 +402,12 @@ int main(int argc, char* argv[]) {
 #endif
             auto seg_len = std::min(max_seg_len, script_len);
             //LOGD("decrypt segment. size=%d", seg_len);
-            rc4((u8*) script_data, seg_len, (u8*) rc4_key, rc4_key_len);
+            rc4_skip((u8*) rc4_key, rc4_key_len, offset, (u8*) script_data, seg_len);
             write(fd, script_data, seg_len);
             memset(script_data, 0, seg_len);
             script_len -= seg_len;
             script_data += seg_len;
+            offset += seg_len;
         }
         memset((void*) rc4_key, 0, rc4_key_len);
         close(fd);
