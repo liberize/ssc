@@ -54,9 +54,7 @@ FORCE_INLINE std::string extract_embeded_file() {
     
     char path[PATH_MAX];
     strcpy(path, tmpdir());
-    strcat(path, OBF("/ssc"));
-    mkdir(path, 0755);
-    strcat(path, "/XXXXXX");
+    strcat(path, OBF("/ssc.XXXXXX"));
     if (!mkdtemp(path)) {
         LOGE("failed to create output directory");
         exit(1);

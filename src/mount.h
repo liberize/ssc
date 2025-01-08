@@ -150,9 +150,7 @@ FORCE_INLINE std::string mount_squashfs() {
     }
     char mount_dir[PATH_MAX];
     strcpy(mount_dir, tmpdir());
-    strcat(mount_dir, OBF("/ssc"));
-    mkdir(mount_dir, 0755);
-    strcat(mount_dir, "/XXXXXX");
+    strcat(mount_dir, OBF("/ssc.XXXXXX"));
     if (!mkdtemp(mount_dir)) {
         LOGE("failed to create mount directory");
         exit(1);

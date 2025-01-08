@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <random>
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
@@ -93,6 +94,20 @@ FORCE_INLINE std::string str_replace_all(std::string str, const std::string& fro
         start_pos += to.length();
     }
     return str;
+}
+
+FORCE_INLINE char rand_char() {
+    constexpr const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    static std::mt19937 gen(std::random_device{}());
+    static std::uniform_int_distribution<> dist(0, strlen(chars) - 1);
+    return chars[dist(gen)];
+}
+
+FORCE_INLINE std::string rand_str(int len) {
+    std::string s(len, '\0');
+    for (int i = 0; i < len; i++)
+        s[i] = rand_char();
+    return s;
 }
 
 FORCE_INLINE int read_all(const char* path, std::vector<char>& buf) {

@@ -239,10 +239,9 @@ int main(int argc, char* argv[]) {
     
 #ifdef __FreeBSD__
     char fifo_name[PATH_MAX];
-    int l = 100;
-    for (int i = getpid(); l--; ) {
-        i = (i * 1436856257) % 1436856259;
-        sprintf(fifo_name, OBF("%s/ssc.%08x"), tmpdir(), i);
+    int l = 10;
+    while (l--) {
+        sprintf(fifo_name, OBF("%s/ssc.%s"), tmpdir(), rand_str().c_str());
         if (!mkfifo(fifo_name, S_IWUSR | S_IRUSR)) {
             break;
         }
@@ -251,7 +250,7 @@ int main(int argc, char* argv[]) {
         LOGE("failed to create fifo!");
         return 2;
     }
-    std::string path = fifo_name;
+    std::string path(fifo_name);
     cleaner.add(path);
 #else
     int fd_script[2];
@@ -277,11 +276,8 @@ int main(int argc, char* argv[]) {
     std::string link_name(OBF(STR(PS_NAME)));
     pos = link_name.find("XXXXXX");
     if (pos != std::string::npos) {
-        const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        std::mt19937 gen(std::random_device{}());
-        std::uniform_int_distribution<> dist(0, strlen(chars) - 1);
         for (; pos < link_name.size() && link_name[pos] == 'X'; pos++) {
-            link_name[pos] = chars[dist(gen)];
+            link_name[pos] = rand_char();
         }
     }
     if (is_symlink(link_name.c_str())) {

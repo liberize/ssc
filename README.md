@@ -124,7 +124,7 @@ Usage: ./ssc [-u] [-s] [-r] [-e|-E|-M file] [-0] [-n name] [-d date] [-m msg] [-
 
 ## Limitations
 
-* By default, `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced by /dev/fd/xxx or /tmp/xxxxxx. To workaround this, try `-0` flag or `-n` flag or use `$SSC_ARGV0` instead.
+* By default, `$0` / `$ARGV[0]` / `sys.argv[0]` is replaced with /dev/fd/xxx or /tmp/xxxxxx. To workaround this, try `-0` flag or `-n` flag or use `$SSC_ARGV0` instead.
 
 ## Examples
 
@@ -171,11 +171,11 @@ If the script has a relative-path shebang, the interpreter of the path relative 
 
 If the binary is generated with `-i`, the interpreter path specified after `-i` will be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
 
-If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc/XXXXXX/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
+If the binary is generated with `-e`, the interpreter is built into the binary. Upon execution, the interpreter will be extracted to /tmp/ssc.XXXXXX/, then be used to launch an interpreter process according to the shebang. In this case, the program specified in the shebang will appear as process name, but not be used actually.
 
-If the binary is generated with `-E`, the archive is built into the binary. Upon execution, the archive will be decompressed and extracted to /tmp/ssc/XXXXXX/ with permissions perserved. If the script has a relative-path shebang, the interpreter of the path relative to the extraction directory will be used, otherwise, a system intepreter will be used.
+If the binary is generated with `-E`, the archive is built into the binary. Upon execution, the archive will be decompressed and extracted to /tmp/ssc.XXXXXX/ with permissions perserved. If the script has a relative-path shebang, the interpreter of the path relative to the extraction directory will be used, otherwise, a system intepreter will be used.
 
-If the binary is generated with `-M`, the squashfs file is appended to the binary. Upon execution, the squashfs file will be mounted to /tmp/ssc/XXXXXX/. If the script has a relative-path shebang, the interpreter of the path relative to the mount directory will be used, otherwise, a system intepreter will be used.
+If the binary is generated with `-M`, the squashfs file is appended to the binary. Upon execution, the squashfs file will be mounted to /tmp/ssc.XXXXXX/. If the script has a relative-path shebang, the interpreter of the path relative to the mount directory will be used, otherwise, a system intepreter will be used.
 
 ## Cross compiling
 
