@@ -141,7 +141,7 @@ b2o() {
 # cleanup on exit
 trap "rm -f \"$1.cpp\" \"$1.tmp\" i.o i s.o s rc4 crc32 d.sfs" EXIT
 
-perl -pe 's/^\xEF\xBB\xBF//; s/\r\n/\n/' "$1" >"$1.tmp" || exit 1
+perl -pe 's/^\xEF\xBB\xBF//; s/\r\n/\n/' <"$1" >"$1.tmp" || exit 1
 if [ "$(head -c2 "$1.tmp")" = "#!" ]; then
   SHEBANG="$(head -n1 "$1.tmp")"
   SHEBANG_LEN="$(head -n1 "$1.tmp" | wc -c)"
