@@ -195,8 +195,8 @@ if [ -n "$VERIFY_CHECKSUM" ]; then
   echo '=> build crc32 tool...'
   g++ -std=$CXX_STANDARD -w "$SRC_DIR/crc32.cpp" -o crc32 || exit 1
   echo '=> write checksum to binary...'
-  OFFSET="$(LC_ALL=C grep -abo ssccksum "$2" | grep -o '^[0-9]*')"
+  OFFSET="$(perl -e "open(F,'<','$2'); binmode(F); $/=undef; print index(<F>,'ssccksum')")"
   CKSUM="$(./crc32 "$2")"
   #echo "offset=$OFFSET cksum=$CKSUM"
-  perl -e "open(my \$fh,'+<','$2'); seek(\$fh,$OFFSET,0); print \$fh pack('V',$OFFSET),pack('V',$CKSUM)"
+  perl -e "open(F,'+<','$2'); seek(F,$OFFSET,0); print F pack('V',$OFFSET),pack('V',$CKSUM)"
 fi
